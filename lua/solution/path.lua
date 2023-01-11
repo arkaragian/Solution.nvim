@@ -11,26 +11,55 @@ local Path = {}
 -- @param path The input path
 -- @param seperator The directory seperator
 Path.GetParrentDirectory = function(path,seperator)
-    -- TODO: Handle windows
+    local len =string.len(path)
+    -- If the path ends in the seperator character, just remove the seprator character
+    -- In linux os the root is 1
+    if (string.sub(path,len,len) == seperator and len > 1) then
+        path =string.sub(path,1,len-1)
+        len = len -1;
+    end
+    --Just to make our lives easier we need to remove the final seperator
+    --character. But linux and windows are different.
+
+
+    -- If we are at the root path. Just return the root path.
     if(string.lower(jit.os) == "windows") then
+
+        local start
+        if (len >= 3) then
+            start =string.sub(path,1,3)
+        else
+            start =string.sub(path,1,2)
+        end
+
+
         -- If we have reached the drive. such as: C:\ Z:\ or whatever
-        if(string.sub(path,1,3) == path) then
-            return path
+        if(start == path) then
+            if( len < 3) then
+                return (path .. seperator)
+            else
+                return path
+            end
         end
     else
+        -- Linux handling
         if(path == "/") then
             return path
         end
     end
 
+
+    -- Get last seperator position
     local lastSeperatorIndex = 0;
     for i=1,string.len(path) do
-        -- Get a character
+        -- Get a character by extracting from i to i
         local c = string.sub(path,i,i)
         if(c == seperator) then
             lastSeperatorIndex = i
         end
     end
+
+    -- The parent path is from the start up to the position before the last seperator.
     return string.sub(path,1,lastSeperatorIndex-1)
 end
 
