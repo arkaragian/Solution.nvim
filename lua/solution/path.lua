@@ -10,7 +10,7 @@ local Path = {}
 --- Return the parent directory for a given path
 -- @param path The input path
 -- @param seperator The directory seperator
-function Path.GetParrentDirectory(path,seperator)
+Path.GetParrentDirectory = function(path,seperator)
     -- TODO: Handle windows
     if(string.lower(jit.os) == "windows") then
         -- If we have reached the drive. such as: C:\ Z:\ or whatever
@@ -37,7 +37,7 @@ end
 --- Determines if the given directory contains any files of the given extension
 -- @param dir The directory path to check
 -- @param extension The extension to check for
-function Path.DirectoryContainsExtension(directory,extension)
+Path.DirectoryContainsExtension = function(directory,extension)
     local dir_sep
     if package.config:sub(1,1) == '/' then
         dir_sep = '/'
@@ -60,7 +60,7 @@ end
 --- Returns all files of the given extension in the specified directory
 -- @param directory the directory to look for the files
 -- @param extension the extension to look for 
-function Path.GetFilesByExtension(directory,extension)
+Path.GetFilesByExtension = function(directory,extension)
     --TODO: if windows or linux
     local files = {}
     local command
@@ -83,7 +83,7 @@ end
 
 --- Find the given filename starting from cwd and moving upwards
 -- @param filename The filename to look for
-function Path.FindFile(filename)
+Path.FindFile = function(filename)
     local cur_dir = vim.fn.getcwd()
     local dir_sep = nil
     -- Determine the seperator for our operating system
@@ -120,7 +120,7 @@ end
 
 --- Retuens the first file that exists within our path with the given extension
 -- @param extension The extension of the file
-function Path.FindFirstOccurenceOfExtension(extension)
+Path.FindFirstOccurenceOfExtension = function(extension)
     print("Finding First Occurence With Extension ".. extension)
     local cur_dir = vim.fn.getcwd()
     local dir_sep = nil
@@ -165,6 +165,4 @@ function Path.FindFirstOccurenceOfExtension(extension)
     end
 end
 
-
 return Path
-
