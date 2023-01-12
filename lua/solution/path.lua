@@ -180,6 +180,10 @@ end
 --- or upstream directories.
 -- @param extension The extension of the file
 Path.FindUpstreamFilesByExtension = function(extension)
+    if( extension == nil ) then
+        print("Extension is nil. Returning empty table")
+        return {}
+    end
     local cur_dir = vim.fn.getcwd()
     local dir_sep = os.seperator()
 

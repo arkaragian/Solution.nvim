@@ -20,7 +20,7 @@ end
 -- This table stores the plugin configuration
 -- The Keys that we need:
 -- ExecuteFirstSolution = true/false
-SolutionConfig = {
+local SolutionConfig = {
     selection = "first",
     ext = ".csproj",
     conf = "Debug",
@@ -28,7 +28,7 @@ SolutionConfig = {
 }
 
 solution.setup = function(config)
-    if not config then
+    if (config == nil) then
         -- No configuration use default options
         print("No configuration")
         return
@@ -85,7 +85,10 @@ solution.Compile= function(options)
         options = SolutionConfig
     end
     if(options.selection == "first") then
-        solution.CompileFirst(options.ext)
+        if(options.ext == nil) then
+            print("Options extension is nill. Doing nothing.")
+        end
+        solution.CompileFirst(options)
     else
         --solution.CompileSelect(options.ext)
     end
