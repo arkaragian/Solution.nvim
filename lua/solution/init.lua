@@ -40,11 +40,18 @@ end
 solution.CompileByFilename = function(filename, options)
     -- dotnet build [<PROJECT | SOLUTION>...] [options]
     local command = "dotnet build " .. filename-- .. " -c " .. options.conf-- .. " -a " .. options.arch
-    print("Command is:" .. command)
-    -- TODO: Investigate vim jobstart
-    --local code = os.execute(command)
-    vim.fn.jobstart(command)
-    --print("Exit code is:" .. code)
+    local id = vim.fn.jobstart(command)
+    if(id == 0) then
+        print("Invalid Compilation Arguments")
+    else
+        print("Compilation Complete")
+    end
+
+    --vim.loop.spawn('dotnet build', {
+    --    args = {filename,'-c',options.conf,'-a',options.arch}
+    --}, function()
+    --    print("Compilation Complete")
+    --end)
 end
 
 --- Compiles the solution
@@ -90,7 +97,7 @@ solution.Compile= function(options)
         end
         solution.CompileFirst(options)
     else
-        --solution.CompileSelect(options.ext)
+        solution.CompileSelect(options)
     end
 end
 
