@@ -22,9 +22,9 @@ end
 -- ExecuteFirstSolution = true/false
 local SolutionConfig = {
     selection = "first",
-    ext = ".csproj",
+    ext = ".sln",
     conf = "Debug",
-    arch = "x64"
+    arch = "x86"
 }
 
 solution.setup = function(config)
