@@ -4,6 +4,7 @@ local solution = {}
 
 --The modules that we will be using.
 local Path = require("solution.path")
+local Parser = require("solution.parser")
 
 --Could be used to configure the parser.
 --local CompilerVersion = nil
@@ -26,23 +27,114 @@ solution.setup = function(config)
     else
         SolutionConfig = config
     end
+    solution.GetCompilerVersion()
+end
+
+solution.SelectArchitecture = function()
+    -- TODO make sure to have all the dotnet provided architectures.
+    -- Or make this user configurable?
+    local items = {
+        "x86",
+        "x64",
+        "AnyCPU"
+    }
+    local opts = {
+        prompt = "Change compile architecture to:"
+    }
+    vim.ui.select(items,opts,solution.SetArchitecture)
+end
+
+solution.SetArchitecture = function(item,index)
+    if not item then
+        return
+    end
+    SolutionConfig.arch = item
 end
 
 solution.CompileByFilename = function(filename, options)
     -- dotnet build [<PROJECT | SOLUTION>...] [options]
-    local command = "dotnet build " .. filename-- .. " -c " .. options.conf-- .. " -a " .. options.arch
-    local id = vim.fn.jobstart(command)
-    if(id == 0) then
-        print("Invalid Compilation Arguments")
-    else
-        print("Compilation Complete")
+    local command = "dotnet build " .. filename .. " -c " .. options.conf .. " -a " .. options.arch .. " -v q"
+    print("Compiling:" .. filename .. " Configuration:" .. options.conf .. " Architecture:" .. options.arch)
+
+
+    -- The items to be displayed
+    local items = {}
+    local stringLines = {} -- Used to detect duplicates
+
+    -- Detects if we have entries to our quickfix table
+    local counter = 0
+
+    -- Keep track the number of errors and warnings
+    local errors = 0
+    local warnings = 0
+
+    local function on_event(job_id, data, event)
+        -- Make the lsp shutup.
+        _ = job_id
+        -- While the job is running , it may write to stdout and stderr
+        -- Here we handle when we write to stdout
+        if event == "stdout" or event == "stderr" then
+            -- If we have data, then append them to the lines array
+            if data then
+                for _,theLine in ipairs(data) do
+                    if not stringLines[theLine] then
+                        stringLines[theLine] = true
+                        local r = Parser.ParseLine(theLine)
+                        if r then
+                            -- Add the line to the table
+                            vim.list_extend(items,{r})
+                            counter = counter + 1
+                            if (r.type == 'E') then
+                                errors = errors + 1
+                            else
+                                warnings = warnings + 1
+                            end
+                        end
+                    end
+                end
+            end
+        end
+
+        -- When the job exits, populate the quick fix list
+        if event == "exit" then
+            -- TODO: Add user configurable option to only open if there are errors
+            -- TODO: User configurable option to only display errors or warnings
+            if (counter > 0) then
+                vim.fn.setqflist(items)
+                vim.cmd.doautocmd("QuickFixCmdPost")
+                vim.cmd.copen()
+            end
+        end
     end
 
-    --vim.loop.spawn('dotnet build', {
-    --    args = {filename,'-c',options.conf,'-a',options.arch}
-    --}, function()
-    --    print("Compilation Complete")
-    --end)
+    -- https://phelipetls.github.io/posts/async-make-in-nvim-with-lua/
+    local id = vim.fn.jobstart(command,{
+        on_stderr = on_event,
+        on_stdout = on_event,
+        on_exit = on_event,
+        stdout_buffered = true,
+        stderr_buffered = true,
+    })
+end
+
+solution.GetCompilerVersion = function()
+    local command = "dotnet build --version"
+
+    local count = 0
+
+    local function HandleData(job_id, data, event)
+        -- Handle Data Written to stdout
+        count = count+1
+        if data then
+            CompilerVersion = data[2]
+        end
+    end
+
+    local id = vim.fn.jobstart(command,{
+        on_stdout = HandleData,
+        stdout_buffered = true,
+        stderr_buffered = true,
+    })
 end
 
 --- Compiles the solution
