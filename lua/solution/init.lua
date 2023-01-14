@@ -5,21 +5,12 @@ local solution = {}
 --The modules that we will be using.
 local Path = require("solution.path")
 
-------------------------------------------------------------------------------
---- HELPER FUNCTIONS --
-------------------------------------------------------------------------------
-local function CountItems(list)
-    local count = 0
-    for _ in pairs(list) do
-        count = count + 1 end
-    return count
-end
-
-
+--Could be used to configure the parser.
+--local CompilerVersion = nil
 
 -- This table stores the plugin configuration
 -- The Keys that we need:
--- ExecuteFirstSolution = true/false
+-- selection = first|selection
 local SolutionConfig = {
     selection = "first",
     ext = ".sln",
