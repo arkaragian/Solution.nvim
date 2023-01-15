@@ -15,7 +15,7 @@ local sln = require("solution")
 ```
 
 ## Ideas for future implementation
-Below are listed ideas of what the plugin could do. 
+Below are listed ideas of what the plugin could do. Not in order of priority.
 - [x] Automatic `.sln` and `.csproj` detection within the filesystem.
 - [x] Quick fix list implementation from compilation output.
 - [ ] Support for msbuild (this would support additional languages such as C/C++ with microsoft tools).
@@ -24,3 +24,5 @@ Below are listed ideas of what the plugin could do.
 - [ ] Persistent project settings (Remember past projects that have been compiled)
 - [ ] Add ui for information
 - [ ] Add support for unit tests execution
+- [ ] Add support for project exclusion
+- [ ] Persistent between project settings
