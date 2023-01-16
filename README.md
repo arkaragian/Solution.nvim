@@ -25,4 +25,4 @@ Below are listed ideas of what the plugin could do. Not in order of priority.
 - [ ] Add ui for information
 - [ ] Add support for unit tests execution
 - [ ] Add support for project exclusion
-- [ ] Persistent between project settings
+- [ ] Persistent between project settings (using lua `vim.fn.stdpath("cache") .. "/Solution.nvim",` 
