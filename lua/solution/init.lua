@@ -184,4 +184,12 @@ solution.Compile= function(options)
     end
 end
 
+solution.OpenWindow = function()
+    require("solution.ui").OpenWindow("Compiling..")
+end
+
+solution.AddLine = function()
+    require("solution.ui").AddLine("Hello!")
+end
+
 return solution
