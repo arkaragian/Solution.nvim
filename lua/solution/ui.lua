@@ -6,7 +6,7 @@
 -- This file handles a single window
 local ui = {}
 
-local buf
+local buf = -1
 local windowHandle
 local position = 0
 
@@ -86,46 +86,32 @@ ui.PaintWindow = function(title)
     vim.api.nvim_win_set_option(windowHandle, 'cursorline', true) -- it highlight line with the cursor on it
 
     -- we can add title already here, because first line will never change
-    vim.api.nvim_buf_set_lines(buf, 0, -1, false, { center(title), '', ''})
-    vim.api.nvim_buf_add_highlight(buf, -1, 'WhidHeader', 0, 0, -1)
+    -- Add thre lines. One for the title, and two gap lines.
+    -- ENABLE THIS
+    --vim.api.nvim_buf_set_lines(buf, 0, -1, false, { center(title), '', ''})
+    --vim.api.nvim_buf_add_highlight(buf, -1, 'WhidHeader', 0, 0, -1)
 end
 
 ui.AddLine = function(line)
-  vim.api.nvim_buf_set_option(buf, 'modifiable', true)
-  if line then
-      local nuLines = vim.api.nvim_buf_line_count(buf)
-      print(nuLines)
-      --  vim.api.nvim_buf_set_text(buf,nuLines-1,0,nuLines,0,{line})
-      vim.api.nvim_buf_set_lines(buf, nuLines+1, nuLines+2, false, {line})
-  end
-  vim.api.nvim_buf_set_option(buf, 'modifiable', false)
-end
+    if line and buf > 0 then
+        vim.api.nvim_buf_set_option(buf, 'modifiable', true)
 
-local function update_view(direction)
-  vim.api.nvim_buf_set_option(buf, 'modifiable', true)
-  position = position + direction
-  if position < 0 then
-      position = 0
-  end
+        local nuLines = vim.api.nvim_buf_line_count(buf)
+        vim.api.nvim_buf_set_lines(buf, nuLines, nuLines+1, false, {line})
+        vim.api.nvim_win_set_cursor(windowHandle, {nuLines, 0})
 
-  local result = vim.fn.systemlist('git diff-tree --no-commit-id --name-only -r  HEAD~'..position)
-  if #result == 0 then table.insert(result, '') end -- add  an empty line to preserve layout if there is no results
-  for k,v in pairs(result) do
-    result[k] = '  '..result[k]
-  end
-
-  vim.api.nvim_buf_set_lines(buf, 1, 2, false, {center('HEAD~'..position)})
-  vim.api.nvim_buf_set_lines(buf, 3, -1, false, result)
-
-  vim.api.nvim_buf_add_highlight(buf, -1, 'whidSubHeader', 1, 0, -1)
-  vim.api.nvim_buf_set_option(buf, 'modifiable', false)
+        --vim.api.nvim_buf_add_highlight(buf, -1, 'whidSubHeader', 1, 0, -1)
+        vim.api.nvim_buf_set_option(buf, 'modifiable', false)
+    end
 end
 
 --- Closes the window
-local function CloseWindow()
+ui.CloseWindow = function()
     -- When the bufer that contains the window, closes
     -- we have defined a autocommand to close the border buffer also
+    vim.keymap.del('n','<ESC>',{buffer = buf})
     vim.api.nvim_win_close(windowHandle, true)
+    buf = -1
 end
 
 local function move_cursor()
@@ -144,11 +130,13 @@ local function set_mappings(buf)
     k = 'move_cursor()'
   }
 
-  for k,v in pairs(mappings) do
-    vim.api.nvim_buf_set_keymap(buf, 'n', k, ':lua require"whid".'..v..'<cr>', {
-        nowait = true, noremap = true, silent = true
-      })
-  end
+  --for key,val in pairs(mappings) do
+  --  vim.api.nvim_buf_set_keymap(buf, 'n', key, ':lua require"whid".'..val..'<cr>', {
+  --      nowait = true, noremap = true, silent = true
+  --    })
+  --end
+
+  vim.keymap.set('n','<ESC>',ui.CloseWindow,{ buffer = buf, nowait = true, noremap = true, silent = true })
   local other_chars = {
     'a', 'b', 'c', 'd', 'e', 'f', 'g', 'i', 'n', 'o', 'p', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'
   }
@@ -162,8 +150,9 @@ end
 ui.OpenWindow = function(title)
     ui.PaintWindow(title)
     set_mappings(buf)
-    vim.api.nvim_buf_set_lines(buf, 1, 2, false, {center("A Sample Line")})
-    vim.api.nvim_win_set_cursor(windowHandle,{1,2})
+    -- This works for a single line
+    --vim.api.nvim_buf_set_lines(buf, 1, 2, false, {center("A Sample Line")})
+    --vim.api.nvim_win_set_cursor(windowHandle,{1,2})
 end
 
 --ui.whid = function()

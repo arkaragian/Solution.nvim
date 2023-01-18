@@ -5,6 +5,7 @@ local solution = {}
 --The modules that we will be using.
 local Path = require("solution.path")
 local Parser = require("solution.parser")
+local Ui = require("solution.ui")
 
 --Could be used to configure the parser.
 --local CompilerVersion = nil
@@ -68,6 +69,9 @@ solution.CompileByFilename = function(filename, options)
     local errors = 0
     local warnings = 0
 
+
+    Ui.OpenWindow("Compiling..")
+
     local function on_event(job_id, data, event)
         -- Make the lsp shutup.
         _ = job_id
@@ -77,6 +81,7 @@ solution.CompileByFilename = function(filename, options)
             -- If we have data, then append them to the lines array
             if data then
                 for _,theLine in ipairs(data) do
+                    Ui.AddLine(theLine)
                     if not stringLines[theLine] then
                         stringLines[theLine] = true
                         local r = Parser.ParseLine(theLine)
@@ -97,6 +102,7 @@ solution.CompileByFilename = function(filename, options)
 
         -- When the job exits, populate the quick fix list
         if event == "exit" then
+            --Ui.CloseWindow()
             -- TODO: Add user configurable option to only open if there are errors
             -- TODO: User configurable option to only display errors or warnings
             if (counter > 0) then
@@ -184,12 +190,5 @@ solution.Compile= function(options)
     end
 end
 
-solution.OpenWindow = function()
-    require("solution.ui").OpenWindow("Compiling..")
-end
-
-solution.AddLine = function()
-    require("solution.ui").AddLine("Hello!")
-end
 
 return solution
