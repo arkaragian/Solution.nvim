@@ -16,6 +16,7 @@ local sln = require("solution")
 
 ## Ideas for future implementation
 Below are listed ideas of what the plugin could do. Not in order of priority.
+- [ ] Support for executing the project inside nvim
 - [x] Automatic `.sln` and `.csproj` detection within the filesystem.
 - [x] Quick fix list implementation from compilation output.
 - [ ] Support for msbuild (this would support additional languages such as C/C++ with microsoft tools).
@@ -23,6 +24,8 @@ Below are listed ideas of what the plugin could do. Not in order of priority.
 - [ ] Solution Configuration selection
 - [ ] Persistent project settings (Remember past projects that have been compiled)
 - [ ] Add ui for information
+-  [ ] Live compile. (Curently in sync state, maybe immplement using libuv)
 - [ ] Add support for unit tests execution
 - [ ] Add support for project exclusion
 - [ ] Persistent between project settings (using lua `vim.fn.stdpath("cache") .. "/Solution.nvim",` 
+- [ ] Integration with dap modules for easier discovery of programs.
