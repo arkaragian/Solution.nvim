@@ -36,10 +36,13 @@ Below are listed ideas of what the plugin could do. Not in order of priority.
 - [ ] Support for msbuild (this would support additional languages such as C/C++ with microsoft tools).
 - [ ] Solution and project file parser (the features of the parser need to tbd). Maybe using treesitter.
 - [ ] Solution Configuration selection
+    - [ ] xml parser implementation
 - [ ] Persistent project settings (Remember past projects that have been compiled)
-- [ ] Add ui for information
--  [ ] Live compile. (Curently in sync state, maybe immplement using libuv)
+- [x] Add ui for information
+    - [x] Live compile.
+    - [ ] Async Compile. (maybe immplement using libuv)
 - [ ] Add support for unit tests execution
 - [ ] Add support for project exclusion
 - [ ] Persistent between project settings (using lua `vim.fn.stdpath("cache") .. "/Solution.nvim",` 
 - [ ] Integration with dap modules for easier discovery of programs.
+- [ ] Add nuget package management.
