@@ -51,6 +51,11 @@ Parser.ParseLine = function(line)
     -- TODO: We need this to be user configurable
     local bracketOpen,_= string.find(line,"%[") -- parenthesis closse index
     --local bracketClose,_= string.find(line,"]") -- parenthesis closse index
+    --
+    -- If we cannot find those characters we cannot continue
+    if not twoDotsOne or not bracketOpen then
+        return nil
+    end
 
     local theFile = string.sub(line,1,poIndex-1)
     local lineNumber = tonumber(string.sub(line,poIndex+1,cIndex-1))
