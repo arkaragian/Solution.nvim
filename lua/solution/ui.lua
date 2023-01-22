@@ -6,8 +6,8 @@
 -- This file handles a single window
 local ui = {}
 
-local buf = -1
-local windowHandle
+local buf = -1 -- The buffer that holds the window text.
+local windowHandle -- The handle of the window
 local position = 0
 
 local function center(str)
@@ -65,8 +65,68 @@ ui.PaintWindow = function(title)
         col = col
     }
 
+    -- The head line  .. ===Title=== .. can be calculated using the following
+    -- logic. Calculate the side width. Then because we divide by int the total
+    -- with may not add up to the correct one.
+    --
+    --TODO handle very large titles by abbreviating them.
+    local titleLength = string.len(title)
+    local title_side_width = (border_opts.width - titleLength)/2
+
+    -- We may have a floating number here. Convert to integer.
+    local left_width = math.floor(title_side_width)
+    local right_width = math.floor(title_side_width)
+
+    -- Reconstruct the width to check the legnth
+    local total_width = left_width + right_width + titleLength
+
+    print("Total Width:".. total_width .. " Window:".. border_opts.width)
+
+    if(total_width < border_opts.width) then
+        -- Selects where to subtract witdth from.
+        local selector = 'R'
+        while(total_width < border_opts.width) do
+            if (selector == 'R') then
+                right_width = right_width +1
+                selector = 'L'
+            else
+                left_width = left_width +1
+                selector = 'R'
+            end
+            total_width = left_width + right_width + titleLength
+        end
+    end
+
+    if(total_width > border_opts.width) then
+        -- Selects where to subtract witdth from.
+        local selector = 'R'
+        while(total_width > border_opts.width) do
+            if (selector == 'R') then
+                right_width = right_width -1
+                selector = 'L'
+            else
+                left_width = left_width -1
+                selector = 'R'
+            end
+            total_width = left_width + right_width + titleLength
+        end
+    end
+
+    local left_side = '╔' .. string.rep('═',left_width-1)
+    local right_side = string.rep('═',right_width-1) .. '╗'
+
+    --if(string.len(left_side) ~= left_width) then
+    --    print("Left width:" .. string.len(left_side) .. " Expected:".. left_width)
+    --end
+
+    --if(string.len(right_side) ~= right_width) then
+    --    print("right width:" .. string.len(right_side) .. " Expected:".. right_width)
+    --end
+
+    local head_line =  left_side ..  title .. right_side
+
     -- Generate strings with the borders
-    local border_lines = { '╔' .. string.rep('═', win_width) .. '╗' }
+    local border_lines = { head_line }
     local middle_line = '║' .. string.rep(' ', win_width) .. '║'
     for i=1, win_height do
         table.insert(border_lines, middle_line)
@@ -116,6 +176,7 @@ ui.CloseWindow = function()
     -- When the bufer that contains the window, closes
     -- we have defined a autocommand to close the border buffer also
     vim.keymap.del('n','<ESC>',{buffer = buf})
+    vim.keymap.del('n','q',{buffer = buf})
     vim.api.nvim_win_close(windowHandle, true)
     buf = -1
 end
@@ -143,6 +204,7 @@ local function set_mappings(buf)
   --end
 
   vim.keymap.set('n','<ESC>',ui.CloseWindow,{ buffer = buf, nowait = true, noremap = true, silent = true })
+  vim.keymap.set('n','q',ui.CloseWindow,{ buffer = buf, nowait = true, noremap = true, silent = true })
   local other_chars = {
     'a', 'b', 'c', 'd', 'e', 'f', 'g', 'i', 'n', 'o', 'p', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'
   }
