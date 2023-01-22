@@ -12,6 +12,20 @@ or warnings that might have occured and populates a quicfix buffer.
 In order to use with the default configuration.
 ```lua
 local sln = require("solution")
+
+
+-- Configuration
+local config = {
+    selection = "first",
+    ext = ".sln",
+    conf = "Debug",
+    arch = "x86",
+    display = { -- Controls options for popup windows.
+        removeCR = true
+    }
+}
+
+sln.setup(config)
 ```
 
 ## Ideas for future implementation
