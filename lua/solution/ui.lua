@@ -92,15 +92,21 @@ ui.PaintWindow = function(title)
     --vim.api.nvim_buf_add_highlight(buf, -1, 'WhidHeader', 0, 0, -1)
 end
 
-ui.AddLine = function(line)
+--- Adds a line to the current window.
+--@param line The line to display
+--@param removeCR A boolean option that indicates if a trailing CR should be removed.
+ui.AddLine = function(line,removeCR)
     if line and buf > 0 then
         vim.api.nvim_buf_set_option(buf, 'modifiable', true)
+
+        if(removeCR) then
+            line = string.gsub(line,"\r","")
+        end
 
         local nuLines = vim.api.nvim_buf_line_count(buf)
         vim.api.nvim_buf_set_lines(buf, nuLines, nuLines+1, false, {line})
         vim.api.nvim_win_set_cursor(windowHandle, {nuLines, 0})
 
-        --vim.api.nvim_buf_add_highlight(buf, -1, 'whidSubHeader', 1, 0, -1)
         vim.api.nvim_buf_set_option(buf, 'modifiable', false)
     end
 end
