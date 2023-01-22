@@ -7,6 +7,9 @@ local Path = require("solution.path")
 local Parser = require("solution.parser")
 local Ui = require("solution.ui")
 
+
+local filenameSLN = nil
+
 --Could be used to configure the parser.
 --local CompilerVersion = nil
 
@@ -17,7 +20,10 @@ local SolutionConfig = {
     selection = "first",
     ext = ".sln",
     conf = "Debug",
-    arch = "x86"
+    arch = "x86",
+    display = { -- Controls options for popup windows.
+        removeCR = true
+    }
 }
 
 solution.setup = function(config)
@@ -81,7 +87,7 @@ solution.CompileByFilename = function(filename, options)
             -- If we have data, then append them to the lines array
             if data then
                 for _,theLine in ipairs(data) do
-                    Ui.AddLine(theLine)
+                    Ui.AddLine(theLine,SolutionConfig.display.removeCR)
                     if not stringLines[theLine] then
                         stringLines[theLine] = true
                         local r = Parser.ParseLine(theLine)
@@ -118,10 +124,52 @@ solution.CompileByFilename = function(filename, options)
         on_stderr = on_event,
         on_stdout = on_event,
         on_exit = on_event,
-        stdout_buffered = true,
-        stderr_buffered = true,
+        --stdout_buffered = true,
+        --stderr_buffered = true,
     })
 end
+
+solution.CleanByFilename = function(filename)
+    -- dotnet build [<PROJECT | SOLUTION>...] [options]
+    local command = "dotnet clean " .. filename
+    print("Cleaning:" .. filename)
+
+    Ui.OpenWindow("Cleaning..")
+
+    local function on_event(job_id, data, event)
+        -- Make the lsp shutup.
+        _ = job_id
+        -- While the job is running , it may write to stdout and stderr
+        -- Here we handle when we write to stdout
+        if event == "stdout" or event == "stderr" then
+            -- If we have data, then append them to the lines array
+            if data then
+                for _,theLine in ipairs(data) do
+                    Ui.AddLine(theLine,SolutionConfig.display.removeCR)
+                end
+            end
+        end
+
+        -- When the job exits, populate the quick fix list
+        if event == "exit" then
+            --TODO Make this user configurable
+            --Ui.CloseWindow()
+            -- Make the lsp setup here.
+            local a = 5
+            _ = a
+        end
+    end
+
+    -- https://phelipetls.github.io/posts/async-make-in-nvim-with-lua/
+    local id = vim.fn.jobstart(command,{
+        on_stderr = on_event,
+        on_stdout = on_event,
+        on_exit = on_event,
+        --stdout_buffered = true,
+        --stderr_buffered = true,
+    })
+end
+
 
 solution.GetCompilerVersion = function()
     local command = "dotnet build --version"
@@ -143,26 +191,18 @@ solution.GetCompilerVersion = function()
     })
 end
 
---- Compiles the solution
-solution.CompileFirst = function(options)
-    local slnFile = Path.FindUpstreamFilesByExtension(options.ext)
-    if(slnFile[1] == nil ) then
-        print("No solution file found")
-        return
-    end
-    solution.CompileByFilename(slnFile[1], options)
-end
-
 local function OnSelection(table, index)
     if(index == nil) then
+        filenameSLN = nil
         return
     end
 
-    solution.CompileByFilename(table[index],SolutionConfig)
+    filenameSLN = table[index]
+    --solution.CompileByFilename(table[index],SolutionConfig)
 end
 
 -- Ask for selection
-solution.CompileSelect = function(options)
+solution.AskForSelection = function(options)
     local slnFile = Path.FindUpstreamFilesByExtension(options.ext)
     if(slnFile == nil) then
         print("No solution file found")
@@ -176,18 +216,55 @@ solution.CompileSelect = function(options)
     vim.ui.select(slnFile,SelectionOptions,OnSelection)
 end
 
-solution.Compile= function(options)
+
+solution.PerformCommand = function(command,options)
+    -- Reset the filename
+    filenameSLN = nil
     if not options then
         options = SolutionConfig
     end
-    if(options.selection == "first") then
-        if(options.ext == nil) then
-            print("Options extension is nill. Doing nothing.")
-        end
-        solution.CompileFirst(options)
-    else
-        solution.CompileSelect(options)
+
+    if(options.ext == nil) then
+        print("Options extension is nill. Doing nothing.")
+        return
     end
+
+    if(options.selection == "first") then
+        -- Do not select file. Find the first applicable file.
+        local slnFile = Path.FindUpstreamFilesByExtension(options.ext)
+        if(slnFile[1] == nil ) then
+            print("No solution file found")
+            return
+        else
+            filenameSLN = slnFile[1]
+        end
+    else
+        -- Select file
+        solution.AskForSelection(options)
+    end
+
+    if not filenameSLN then
+        print("No project or solution detected. Returning.")
+        return
+    end
+
+    if (command == "build") then
+        solution.CompileByFilename(filenameSLN,options)
+        return
+    end
+
+    if (command == "clean") then
+        solution.CleanByFilename(filenameSLN)
+        return
+    end
+end
+
+solution.Compile= function(options)
+    solution.PerformCommand("build", options)
+end
+
+solution.Clean= function(options)
+    solution.PerformCommand("clean", options)
 end
 
 
