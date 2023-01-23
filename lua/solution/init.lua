@@ -61,7 +61,7 @@ end
 solution.CompileByFilename = function(filename, options)
     -- dotnet build [<PROJECT | SOLUTION>...] [options]
     local command = "dotnet build " .. filename .. " -c " .. options.conf .. " -a " .. options.arch .. " -v q"
-    print("Compiling:" .. filename .. " Configuration:" .. options.conf .. " Architecture:" .. options.arch)
+    --print("Compiling:" .. filename .. " Configuration:" .. options.conf .. " Architecture:" .. options.arch)
 
 
     -- The items to be displayed
@@ -76,7 +76,9 @@ solution.CompileByFilename = function(filename, options)
     local warnings = 0
 
 
-    Ui.OpenWindow("Compiling..")
+    Ui.OpenWindow(" Compiling " .. filename .. " ")
+    Ui.AddLine("Command: ".. command)
+    Ui.AddLine("")
 
     local function on_event(job_id, data, event)
         -- Make the lsp shutup.
