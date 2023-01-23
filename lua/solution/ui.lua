@@ -7,14 +7,9 @@
 local ui = {}
 
 local buf = -1 -- The buffer that holds the window text.
+local border_buf = -1 -- Thee buffer that holds the borders.
 local windowHandle -- The handle of the window
-local position = 0
-
-local function center(str)
-  local width = vim.api.nvim_win_get_width(0)
-  local shift = math.floor(width / 2) - math.floor(string.len(str) / 2)
-  return string.rep(' ', shift) .. str
-end
+local borderWindowHandle
 
 ui.PaintWindow = function(title)
 
@@ -27,11 +22,11 @@ ui.PaintWindow = function(title)
     --
     -- Create a buffer that will hold the window contents and the borders.
     buf = vim.api.nvim_create_buf(listedBuffer, throwAwayBuffer)
-    local border_buf = vim.api.nvim_create_buf(false, true)
+    border_buf = vim.api.nvim_create_buf(listedBuffer, throwAwayBuffer)
 
     -- Delete the buffern when it gets hidden
     vim.api.nvim_buf_set_option(buf, 'bufhidden', 'wipe')
-    vim.api.nvim_buf_set_option(buf, 'filetype', 'whid')
+    vim.api.nvim_buf_set_option(border_buf, 'bufhidden', 'wipe')
 
     -- Get the instance dimensions
     local width = vim.api.nvim_get_option("columns")
@@ -80,7 +75,7 @@ ui.PaintWindow = function(title)
     -- Reconstruct the width to check the legnth
     local total_width = left_width + right_width + titleLength
 
-    print("Total Width:".. total_width .. " Window:".. border_opts.width)
+    --print("Total Width:".. total_width .. " Window:".. border_opts.width)
 
     if(total_width < border_opts.width) then
         -- Selects where to subtract witdth from.
@@ -137,10 +132,11 @@ ui.PaintWindow = function(title)
     vim.api.nvim_buf_set_lines(border_buf, 0, -1, false, border_lines)
 
     --Second argument indicates that we should enter this buffer
-    local _ = vim.api.nvim_open_win(border_buf, true, border_opts)
+    borderWindowHandle = vim.api.nvim_open_win(border_buf, true, border_opts)
     windowHandle = vim.api.nvim_open_win(buf, true, opts)
 
-    vim.api.nvim_command('au BufWipeout <buffer> exe "silent bwipeout! "'..border_buf)
+    --vim.api.nvim_command('au BufWipeout <buffer> exe "silent bwipeout! "'..border_buf)
+    --vim.api.nvim_command('au BufWipeout <buffer> exe "silent bwipeout! "'..buf)
 
     -- highlight the line with the cursor
     vim.api.nvim_win_set_option(windowHandle, 'cursorline', true) -- it highlight line with the cursor on it
@@ -150,6 +146,9 @@ ui.PaintWindow = function(title)
     -- ENABLE THIS
     --vim.api.nvim_buf_set_lines(buf, 0, -1, false, { center(title), '', ''})
     --vim.api.nvim_buf_add_highlight(buf, -1, 'WhidHeader', 0, 0, -1)
+    print(vim.inspect(vim.api.nvim_list_wins()))
+    print("Display:" .. windowHandle)
+    print("Border:" .. borderWindowHandle)
 end
 
 --- Adds a line to the current window.
@@ -175,49 +174,44 @@ end
 ui.CloseWindow = function()
     -- When the bufer that contains the window, closes
     -- we have defined a autocommand to close the border buffer also
-    vim.keymap.del('n','<ESC>',{buffer = buf})
-    vim.keymap.del('n','q',{buffer = buf})
-    vim.api.nvim_win_close(windowHandle, true)
+    if(buf > 1 and windowHandle) then
+        vim.keymap.del('n','<ESC>',{buffer = buf})
+        vim.keymap.del('n','q',{buffer = buf})
+        vim.api.nvim_win_close(windowHandle, true)
+        vim.api.nvim_win_close(borderWindowHandle, true)
+    end
+
+    -- Since we are closed. Reset our state.
     buf = -1
+    border_buf = -1
+    borderWindowHandle = nil
+    windowHandle = nil
 end
 
-local function move_cursor()
-  local new_pos = math.max(4, vim.api.nvim_win_get_cursor(windowHandle)[1] - 1)
-  vim.api.nvim_win_set_cursor(windowHandle, {new_pos, 0})
-end
+--local function move_cursor()
+--  local new_pos = math.max(4, vim.api.nvim_win_get_cursor(windowHandle)[1] - 1)
+--  vim.api.nvim_win_set_cursor(windowHandle, {new_pos, 0})
+--end
 
-local function set_mappings(buf)
-  local mappings = {
-    ['['] = 'update_view(-1)',
-    [']'] = 'update_view(1)',
-    ['<cr>'] = 'open_file()',
-    h = 'update_view(-1)',
-    l = 'update_view(1)',
-    q = 'close_window()',
-    k = 'move_cursor()'
-  }
+local function set_mappings(bufNr)
 
-  --for key,val in pairs(mappings) do
-  --  vim.api.nvim_buf_set_keymap(buf, 'n', key, ':lua require"whid".'..val..'<cr>', {
-  --      nowait = true, noremap = true, silent = true
-  --    })
-  --end
+  vim.keymap.set('n','<ESC>',ui.CloseWindow,{ buffer = bufNr, nowait = true, noremap = true, silent = true })
+  vim.keymap.set('n','q',ui.CloseWindow,{ buffer = bufNr, nowait = true, noremap = true, silent = true })
 
-  vim.keymap.set('n','<ESC>',ui.CloseWindow,{ buffer = buf, nowait = true, noremap = true, silent = true })
-  vim.keymap.set('n','q',ui.CloseWindow,{ buffer = buf, nowait = true, noremap = true, silent = true })
   local other_chars = {
     'a', 'b', 'c', 'd', 'e', 'f', 'g', 'i', 'n', 'o', 'p', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'
   }
   for k,v in ipairs(other_chars) do
-    vim.api.nvim_buf_set_keymap(buf, 'n', v, '', { nowait = true, noremap = true, silent = true })
-    vim.api.nvim_buf_set_keymap(buf, 'n', v:upper(), '', { nowait = true, noremap = true, silent = true })
-    vim.api.nvim_buf_set_keymap(buf, 'n',  '<c-'..v..'>', '', { nowait = true, noremap = true, silent = true })
+    vim.api.nvim_buf_set_keymap(bufNr, 'n', v, '', { nowait = true, noremap = true, silent = true })
+    vim.api.nvim_buf_set_keymap(bufNr, 'n', v:upper(), '', { nowait = true, noremap = true, silent = true })
+    vim.api.nvim_buf_set_keymap(bufNr, 'n',  '<c-'..v..'>', '', { nowait = true, noremap = true, silent = true })
   end
 end
 
 ui.OpenWindow = function(title)
     ui.PaintWindow(title)
     set_mappings(buf)
+    --set_mappings(border_buf)
     -- This works for a single line
     --vim.api.nvim_buf_set_lines(buf, 1, 2, false, {center("A Sample Line")})
     --vim.api.nvim_win_set_cursor(windowHandle,{1,2})
