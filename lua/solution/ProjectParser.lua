@@ -13,7 +13,7 @@ ProjectParser.ParseProject = function(filename)
     local parser = xml2lua.parser(handler)
     parser:parse(xml)
 
-    print(vim.inspect(handler.root))
+    return handler.root
 end
 
 return ProjectParser
