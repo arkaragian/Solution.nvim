@@ -270,5 +270,10 @@ solution.Clean= function(options)
     solution.PerformCommand("clean", options)
 end
 
+solution.Test = function()
+    local p = require("solution.SolutionParser")
+    print("Hello")
+    p.ParseSolution("C:/users/Admin/source/repos/AIStream/AIStream.sln")
+end
 
 return solution
