@@ -117,6 +117,7 @@ solution.CompileByFilename = function(filename, options)
                 vim.fn.setqflist(items)
                 vim.cmd.doautocmd("QuickFixCmdPost")
                 vim.cmd.copen()
+                Ui.BringToFront()
             end
         end
     end

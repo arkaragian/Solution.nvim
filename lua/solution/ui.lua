@@ -170,6 +170,22 @@ ui.AddLine = function(line,removeCR)
     end
 end
 
+--- Brings the popup window (if it exists) into keyboard focus.
+ui.BringToFront = function()
+    if not windowHandle then
+        print("No window handle to bring to front")
+        return
+    end
+
+    if not borderWindowHandle then
+        print("No border window handle to bring to front")
+        return
+    end
+
+    vim.api.nvim_set_current_win(borderWindowHandle)
+    vim.api.nvim_set_current_win(windowHandle)
+end
+
 --- Closes the window
 ui.CloseWindow = function()
     -- When the bufer that contains the window, closes
