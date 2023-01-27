@@ -49,7 +49,7 @@ local ProjectTypes = {
     ["E53F8FEA-EAE0-44A6-8774-FFD645390401"]="ASP.NET MVC 3.0",
     ["E6FDF86B-F3D1-11D4-8576-0002A516ECE8"]="J#",
     ["EC05E597-79D4-47f3-ADA0-324C4F7C7484"]="SharePoint (VB.NET)",
-    ["EFBA0AD7-5A72-4C68-AF49-83D382785DCF"]="Xamarin.Android / Mono for Android",
+    ["EFBA0AD7-5A72-4C68-AF49-8Pro3D382785DCF"]="Xamarin.Android / Mono for Android",
     ["F135691A-BF7E-435D-8960-F99683D2D49C"]="Distributed System",
     ["F184B08F-C81C-45F6-A57F-5ABD9991F28F"]="VB.NET",
     ["F2A71F9B-5D33-465A-A702-920D77279786"]="F#",
@@ -59,41 +59,54 @@ local ProjectTypes = {
     ["FAE04EC0-301F-11D3-BF4B-00C04F79EFBC"]="C#",
 }
 
-
--------------===================
 local path = require("solution.path")
 
 local function ParseProjectLine(line)
     --Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AIStream", "AIStream\AIStream.csproj", "{901BBF64-7D29-4DC4-BED4-61DEEDA35237}"
     --EndProject
-    print("Parsing Line:" .. line)
-    local i, j = string.find(line, "EndProject")
+    --print("Parsing Line:" .. line)
+    local patternStart, patternEnd = string.find(line, "EndProject")
 
-    if(i ~= nil and j ~= nil) then
+    if(patternStart ~= nil and patternEnd ~= nil) then
+        -- We have matched the EndProject. This means that there is nothing
+        -- to do. Just return.
         return nil
     end
-    i, j = string.find(line, "Project")
+    patternStart, patternEnd = string.find(line, "Project")
 
-    if(i == nil or j == nil) then
+    if(patternStart == nil or patternEnd == nil) then
+        --We have no match. There is nothing to do.
         return nil
     end
 
-    if(i ~= nil and j ~= nil) then
-        --print("i:"..i.." j:"..j)
-        -- Project word found let's find the equal sign so that we can locate the project.
-        i,_ = string.find(line,"=")
-        --print("Found = at position:"..i)
-        i,j = string.find(line,"\"",i)
-        _,j = string.find(line,"\"",j+1)
-        --print("Found quotes at i:"..i.." j:"..j)
-        local ProjectName = string.sub(line,i+1,j-1)
-
-        i,j = string.find(line,",",j)
-        i,_ = string.find(line,"\"",i)
-        _,j = string.find(line,"\"",i+1)
-        local ProjectRelativePath = string.sub(line,i+1,j-1)
+    if(patternStart ~= nil and patternEnd ~= nil) then
 
         local project = {}
+
+        local counter = 1
+        for guid in string.gmatch(line, "%x%x%x%x%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%x%x%x%x%x%x%x%x") do
+            if(counter == 1) then
+                project.typeGUID = guid
+                project.type = ProjectTypes[guid]
+            else
+                project.GUID = guid
+            end
+            counter = counter + 1
+        end
+
+        -- Project word found let's find the equal sign so that we can locate the project.
+        patternStart,_ = string.find(line,"=")
+        --print("Found = at position:"..i)
+        patternStart,patternEnd = string.find(line,"\"",patternStart)
+        _,patternEnd = string.find(line,"\"",patternEnd+1)
+        --print("Found quotes at i:"..i.." j:"..j)
+        local ProjectName = string.sub(line,patternStart+1,patternEnd-1)
+
+        patternStart,patternEnd = string.find(line,",",patternEnd)
+        patternStart,_ = string.find(line,"\"",patternStart)
+        _,patternEnd = string.find(line,"\"",patternStart+1)
+        local ProjectRelativePath = string.sub(line,patternStart+1,patternEnd-1)
+
         project.name = ProjectName
         project.RelPath = ProjectRelativePath
 
