@@ -17,9 +17,13 @@ local filenameSLN = nil
 -- The Keys that we need:
 -- selection = first|selection
 local SolutionConfig = {
-    selection = "first",
-    ext = ".sln",
-    conf = "Debug",
+    -- Indicates the selection policy. Currently there are two policies.
+    -- 1) first
+    -- 2) selection
+    -- First indicates to use the first file that is found and is applicable
+    -- select indicates to ask to selection of there are multiple files found
+    ProjectSelectionPolicy = "first",
+    BuildConfiguration = "Debug",
     arch = "x86",
     display = { -- Controls options for popup windows.
         removeCR = true
@@ -60,9 +64,12 @@ end
 
 solution.CompileByFilename = function(filename, options)
     -- dotnet build [<PROJECT | SOLUTION>...] [options]
-    local command = "dotnet build " .. filename .. " -c " .. options.conf .. " -a " .. options.arch .. " -v q"
-    --print("Compiling:" .. filename .. " Configuration:" .. options.conf .. " Architecture:" .. options.arch)
-
+    local command = "dotnet build " .. filename .. " -c " .. options.BuildConfiguration
+    if(Path.GetFileExtension(filename) ~= ".sln") then
+        -- We cannot build a solution and specify a project architecture.
+        command = command .. " -a " .. options.arch
+    end
+    command = command .. " -v q"
 
     -- The items to be displayed
     local items = {}
@@ -206,17 +213,21 @@ end
 
 -- Ask for selection
 solution.AskForSelection = function(options)
-    local slnFile = Path.FindUpstreamFilesByExtension(options.ext)
-    if(slnFile == nil) then
+    local ProjectOrSolution = Path.FindUpstreamFilesByExtension(".sln")
+    if(ProjectOrSolution == nil) then
         print("No solution file found")
-        return
+        ProjectOrSolution = Path.FindUpstreamFilesByExtension(".csproj")
+        if(ProjectOrSolution == nil) then
+            return
+        end
     end
+
 
     SelectionOptions = {
         prompt = "Select file to compile.."
     }
 
-    vim.ui.select(slnFile,SelectionOptions,OnSelection)
+    vim.ui.select(ProjectOrSolution,SelectionOptions,OnSelection)
 end
 
 
@@ -227,23 +238,26 @@ solution.PerformCommand = function(command,options)
         options = SolutionConfig
     end
 
-    if(options.ext == nil) then
-        print("Options extension is nill. Doing nothing.")
-        return
-    end
-
-    if(options.selection == "first") then
+    if(options.ProjectSelectionPolicy == "first") then
         -- Do not select file. Find the first applicable file.
-        local slnFile = Path.FindUpstreamFilesByExtension(options.ext)
+        local slnFile = Path.FindUpstreamFilesByExtension(".sln")
         if(slnFile[1] == nil ) then
             print("No solution file found")
-            return
+            slnFile = Path.FindUpstreamFilesByExtension(".csproj")
+            if(slnFile[1] == nil ) then
+                return
+            else
+                filenameSLN = slnFile[1]
+            end
         else
             filenameSLN = slnFile[1]
         end
-    else
+    elseif (options.ProjectSelectionPolicy == "select") then
         -- Select file
         solution.AskForSelection(options)
+    else
+        print("Invalid selection policy")
+        return
     end
 
     if not filenameSLN then
