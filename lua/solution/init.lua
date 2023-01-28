@@ -180,6 +180,45 @@ solution.CleanByFilename = function(filename)
     })
 end
 
+solution.TestByFilename = function(filename)
+    local command = "dotnet test " .. filename .. " --logger:console"
+
+    Ui.OpenWindow("Testing..")
+
+    local function on_event(job_id, data, event)
+        -- Make the lsp shutup.
+        _ = job_id
+        -- While the job is running , it may write to stdout and stderr
+        -- Here we handle when we write to stdout
+        if event == "stdout" or event == "stderr" then
+            -- If we have data, then append them to the lines array
+            if data then
+                for _,theLine in ipairs(data) do
+                    Ui.AddLine(theLine,SolutionConfig.display.removeCR)
+                end
+            end
+        end
+
+        -- When the job exits, populate the quick fix list
+        if event == "exit" then
+            --TODO Make this user configurable
+            --Ui.CloseWindow()
+            -- Make the lsp setup here.
+            local a = 5
+            _ = a
+        end
+    end
+
+    -- https://phelipetls.github.io/posts/async-make-in-nvim-with-lua/
+    local id = vim.fn.jobstart(command,{
+        on_stderr = on_event,
+        on_stdout = on_event,
+        on_exit = on_event,
+        --stdout_buffered = true,
+        --stderr_buffered = true,
+    })
+end
+
 
 solution.GetCompilerVersion = function()
     local command = "dotnet build --version"
@@ -274,6 +313,11 @@ solution.PerformCommand = function(command,options)
         solution.CleanByFilename(filenameSLN)
         return
     end
+
+    if (command == "test") then
+        solution.TestByFilename(filenameSLN)
+        return
+    end
 end
 
 solution.Compile= function(options)
@@ -285,6 +329,10 @@ solution.Clean= function(options)
 end
 
 solution.Test = function()
+    solution.PerformCommand("test", options)
+end
+
+solution.FunctionTest = function()
     local p = require("solution.SolutionParser")
     print("Hello")
     p.ParseSolution("C:/users/Admin/source/repos/AIStream/AIStream.sln")
