@@ -318,6 +318,12 @@ solution.PerformCommand = function(command,options)
         solution.TestByFilename(filenameSLN)
         return
     end
+
+    if (command == "ListTest") then
+        local tm = require("solution.TestManager")
+        tm.GetTests(filenameSLN)
+        return
+    end
 end
 
 solution.Compile= function(options)
@@ -330,6 +336,13 @@ end
 
 solution.Test = function()
     solution.PerformCommand("test", options)
+end
+
+solution.GetTests = function()
+    solution.PerformCommand("ListTest", options)
+end
+
+solution.GetTestUnderCursor = function()
 end
 
 solution.FunctionTest = function()
