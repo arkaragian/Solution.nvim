@@ -116,6 +116,23 @@ local function ParseProjectLine(line)
     end
 end
 
+--- DOMN'T Call that function. It is still WIP.
+local function ParseGlobalLine(line)
+    local patternStart, patternEnd = string.find(line, "EndGlobalSection")
+
+    if(patternStart ~= nil and patternEnd ~= nil) then
+        -- We have matched an EndGlobalSection Line. Just return.
+        return nil
+    end
+
+    patternStart, patternEnd = string.find(line, "EndGlobal")
+
+    if(patternStart ~= nil and patternEnd ~= nil) then
+        -- We have matched an EndGlobal section. Just return.
+        return nil
+    end
+end
+
 SolutionParser.ParseSolution = function(filename)
     local ext = path.GetFileExtension(filename)
     if (ext ~= ".sln") then
@@ -148,6 +165,8 @@ SolutionParser.ParseSolution = function(filename)
             if a ~= nil then
                 table.insert(solution.projects, a)
             end
+        elseif (state == "global") then
+            _ = 5
         end
     end
 
