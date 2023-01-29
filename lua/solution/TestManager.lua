@@ -106,6 +106,44 @@ local function ReceiveTestListResults(_, data, event)
     end
 end
 
+TestManager.GetTestUnderCursor = function()
+    -- Principle of operation:
+    -- 1 Get the tsnode under the cursor.
+    -- 2 Go upstream until we find the method declaration node
+    -- 3 Go downstream from the method declaration node until
+    -- we find the function name. The node is: name: identifier
+    -- that is child of the function_declaration node.
+    local ts_utils = require("nvim-treesitter.ts_utils")
+    local node = ts_utils.get_node_at_cursor(0)
+    --
+    -- The following query captures the function.
+    --(method_declaration name:(identifier) @the-function) @capture
+
+    local expr = node
+    while expr do
+        if expr:type() == 'method_declaration' then
+            print("Found method declaration")
+            break
+        end
+        expr = expr:parent()
+    end
+
+    -- TODO: Check that this method has a test attribute.
+
+    if not expr then
+        print("Found nothing!")
+    else
+        -- For each child
+        for child, _ in expr:iter_children() do
+            print(vim.inspect("Node type is ".. child:type()))
+            if(child:type() == "identifier") then
+                local s = vim.treesitter.get_node_text(child,0)
+                print("Got: " ..s)
+                return s
+            end
+        end
+    end
+end
 
 -- Executes the "dotnet test --list-tests" command and parses the resulting
 -- tests.
