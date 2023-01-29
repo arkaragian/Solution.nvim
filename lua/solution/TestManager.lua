@@ -162,9 +162,13 @@ TestManager.GetTests = function(filename)
     })
 end
 
-TestManager.ExecuteTest = function(TestName)
-    -- TODO: Execute in new window
+-- Executes a single test.
+TestManager.ExecuteSingleTest = function(Project,TestName)
+    -- TODO: Implement this function
     local command="dotnet test --filter Name~"..TestName
+    -- Make the LSP to shut up
+    _ = Project
+    _ = command
 end
 
 return TestManager
