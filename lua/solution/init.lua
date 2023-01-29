@@ -378,10 +378,12 @@ solution.ClearTest = function()
     TestProject = nil
 end
 
+
 solution.FunctionTest = function()
-    local p = require("solution.SolutionParser")
-    print("Hello")
-    p.ParseSolution("C:/users/Admin/source/repos/AIStream/AIStream.sln")
+    --local p = require("solution.SolutionParser")
+    --print("Hello")
+    --p.ParseSolution("C:/users/Admin/source/repos/AIStream/AIStream.sln")
+    solution.GetTestUnderCursor()
 end
 
 return solution
