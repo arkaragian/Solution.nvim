@@ -351,6 +351,8 @@ solution.TestSelected = function()
         tm.ExecuteSingleTest(TestProject,TestFunctionName)
     end
 end
+
+--- Load all the tests that are reported by dotnet
 solution.GetTests = function()
     solution.PerformCommand("ListTest", options)
 end
