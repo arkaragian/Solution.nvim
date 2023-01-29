@@ -10,6 +10,12 @@ local Ui = require("solution.ui")
 
 local filenameSLN = nil
 
+-- The test name that will be executed
+local TestFunctionName = nil
+
+-- The project file that contains the test.
+local TestProject = nil
+
 --Could be used to configure the parser.
 --local CompilerVersion = nil
 
@@ -338,11 +344,36 @@ solution.Test = function()
     solution.PerformCommand("test", options)
 end
 
+--- Execute a single test.
+solution.TestSelected = function()
+    local tm = require("solution.TestManager")
+    if(TestProject ~= nil and TestFunctionName ~= nil) then
+        tm.ExecuteSingleTest(TestProject,TestFunctionName)
+    end
+end
 solution.GetTests = function()
     solution.PerformCommand("ListTest", options)
 end
 
-solution.GetTestUnderCursor = function()
+--- Sets the test that will be invoked by the TestSelected method.
+solution.SetTest = function()
+    local tm = require("solution.TestManager")
+    local s = tm.GetTestUnderCursor()
+    if (s ~= nil) then
+        local project = Path.FindUpstreamFilesByExtension(".csproj")
+        if(project[1] == nil ) then
+            return
+        else
+            TestProject = project[1]
+            TestFunctionName = s
+        end
+    end
+end
+
+--- Clears the test that will be invoked by the TestSelected method.
+solution.ClearTest = function()
+    TestFunctionName = nil
+    TestProject = nil
 end
 
 solution.FunctionTest = function()
