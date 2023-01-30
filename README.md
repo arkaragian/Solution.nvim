@@ -28,6 +28,10 @@ local config = {
 sln.setup(config)
 ```
 
+## Current State
+The plugin is still in early alpha stage and the design will be breaking frequently.
+
+
 ## Ideas for future implementation
 Below are listed ideas of what the plugin could do. Not in order of priority.
 - [ ] Support for executing the project inside nvim
@@ -42,6 +46,8 @@ Below are listed ideas of what the plugin could do. Not in order of priority.
     - [x] Live compile.
     - [ ] Async Compile. (maybe immplement using libuv)
 - [ ] Add support for unit tests execution
+    - [x] Test discovery
+    - [ ] Single test execution
 - [ ] Add support for project exclusion
 - [ ] Persistent between project settings (using lua `vim.fn.stdpath("cache") .. "/Solution.nvim",` 
 - [ ] Integration with dap modules for easier discovery of programs.
