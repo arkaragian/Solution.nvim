@@ -383,7 +383,7 @@ solution.FunctionTest = function()
     --local p = require("solution.SolutionParser")
     --print("Hello")
     --p.ParseSolution("C:/users/Admin/source/repos/AIStream/AIStream.sln")
-    solution.GetTestUnderCursor()
+    solution.SetTest()
 end
 
 return solution
