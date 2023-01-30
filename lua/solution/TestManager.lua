@@ -169,6 +169,16 @@ TestManager.ExecuteSingleTest = function(Project,TestName)
     -- Make the LSP to shut up
     _ = Project
     _ = command
+
+    local id = vim.fn.jobstart(command)
+
+    --local id = vim.fn.jobstart(command,{
+    --    on_stderr = on_event,
+    --    on_stdout = on_event,
+    --    on_exit = on_event,
+    --    --stdout_buffered = true,
+    --    --stderr_buffered = true,
+    --})
 end
 
 return TestManager
