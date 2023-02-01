@@ -8,6 +8,13 @@ local Path = {}
 
 local os = require("solution.osutils")
 
+Path.GetFilenameFromPath = function(filepath)
+    -- The filename is between the os seperator and the dot in the file if it
+    -- exists
+    local start, finish = filepath:find('[%w%s!-={-|]+[_%.].+')
+    local filename =filepath:sub(start,finish)
+    return filename
+end
 
 --- Returns the extension of a given filename 
 -- The function will return nill if the file does not have an extension
