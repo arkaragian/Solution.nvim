@@ -73,7 +73,8 @@ solution.CompileByFilename = function(filename, options)
     local command = "dotnet build " .. filename .. " -c " .. options.BuildConfiguration
     if(Path.GetFileExtension(filename) ~= ".sln") then
         -- We cannot build a solution and specify a project architecture.
-        command = command .. " -a " .. options.arch
+        --command = command .. " -a " .. options.arch
+        _ = 5
     end
     command = command .. " -v q"
 
