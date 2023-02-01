@@ -5,7 +5,7 @@ local solution = {}
 --The modules that we will be using.
 local Path = require("solution.path")
 local Parser = require("solution.parser")
-local Ui = require("solution.ui")
+local win = require("solution.window")
 
 
 local filenameSLN = nil
@@ -89,9 +89,11 @@ solution.CompileByFilename = function(filename, options)
     local warnings = 0
 
 
-    Ui.OpenWindow(" Compiling " .. filename .. " ")
-    Ui.AddLine("Command: ".. command)
-    Ui.AddLine("")
+    local CompileOutputWindow = win.new(" Compiling " .. filename .. " ")
+    CompileOutputWindow.PaintWindow()
+    CompileOutputWindow.AddLine("Command: ".. command)
+    CompileOutputWindow.AddLine("")
+
 
     local function on_event(job_id, data, event)
         -- Make the lsp shutup.
@@ -102,7 +104,7 @@ solution.CompileByFilename = function(filename, options)
             -- If we have data, then append them to the lines array
             if data then
                 for _,theLine in ipairs(data) do
-                    Ui.AddLine(theLine,SolutionConfig.display.removeCR)
+                    CompileOutputWindow.AddLine(theLine,SolutionConfig.display.removeCR)
                     if not stringLines[theLine] then
                         stringLines[theLine] = true
                         local r = Parser.ParseLine(theLine)
@@ -123,14 +125,13 @@ solution.CompileByFilename = function(filename, options)
 
         -- When the job exits, populate the quick fix list
         if event == "exit" then
-            --Ui.CloseWindow()
             -- TODO: Add user configurable option to only open if there are errors
             -- TODO: User configurable option to only display errors or warnings
             if (counter > 0) then
                 vim.fn.setqflist(items)
                 vim.cmd.doautocmd("QuickFixCmdPost")
                 vim.cmd.copen()
-                Ui.BringToFront()
+                CompileOutputWindow.BringToFront()
             end
         end
     end
@@ -150,7 +151,8 @@ solution.CleanByFilename = function(filename)
     local command = "dotnet clean " .. filename
     print("Cleaning:" .. filename)
 
-    Ui.OpenWindow("Cleaning..")
+    local window = win.new("Cleaning..")
+    window.PaintWindow()
 
     local function on_event(job_id, data, event)
         -- Make the lsp shutup.
@@ -161,15 +163,13 @@ solution.CleanByFilename = function(filename)
             -- If we have data, then append them to the lines array
             if data then
                 for _,theLine in ipairs(data) do
-                    Ui.AddLine(theLine,SolutionConfig.display.removeCR)
+                    window.AddLine(theLine,SolutionConfig.display.removeCR)
                 end
             end
         end
 
         -- When the job exits, populate the quick fix list
         if event == "exit" then
-            --TODO Make this user configurable
-            --Ui.CloseWindow()
             -- Make the lsp setup here.
             local a = 5
             _ = a
@@ -189,7 +189,8 @@ end
 solution.TestByFilename = function(filename)
     local command = "dotnet test " .. filename .. " --logger:console"
 
-    Ui.OpenWindow("Testing..")
+    local window = win.new("Testing..")
+    window.PaintWindow()
 
     local function on_event(job_id, data, event)
         -- Make the lsp shutup.
@@ -200,15 +201,13 @@ solution.TestByFilename = function(filename)
             -- If we have data, then append them to the lines array
             if data then
                 for _,theLine in ipairs(data) do
-                    Ui.AddLine(theLine,SolutionConfig.display.removeCR)
+                    window.AddLine(theLine,SolutionConfig.display.removeCR)
                 end
             end
         end
 
         -- When the job exits, populate the quick fix list
         if event == "exit" then
-            --TODO Make this user configurable
-            --Ui.CloseWindow()
             -- Make the lsp setup here.
             local a = 5
             _ = a
