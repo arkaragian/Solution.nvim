@@ -16,4 +16,18 @@ ProjectParser.ParseProject = function(filename)
     return handler.root
 end
 
+ProjectParser.GetBinaryOutput = function(filename)
+    local path = require("solution.path")
+    local os = require("solution.osutils")
+    -- asume we receive a csproj as a filename
+    local parent = path.GetParrentDirectory(filename)
+    print("Parent:" .. parent)
+    local projName = path.GetFilenameFromPath(filename)
+    print("Name:" .. projName)
+
+    local output = parent .. os.seperator() .. "bin" .. os.seperator() .. projName .. ".dll"
+    print("Output:" .. output)
+    return output
+end
+
 return ProjectParser
