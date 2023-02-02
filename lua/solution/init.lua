@@ -32,7 +32,8 @@ local SolutionConfig = {
     BuildConfiguration = "Debug",
     arch = "x86",
     display = { -- Controls options for popup windows.
-        removeCR = true
+        removeCR = true,
+        HideCompilationWarnings = true
     }
 }
 
@@ -65,7 +66,33 @@ solution.SetArchitecture = function(item,index)
     if not item then
         return
     end
+    _ = index
     SolutionConfig.arch = item
+end
+
+solution.SelectWaringDisplay = function()
+    -- TODO make sure to have all the dotnet provided architectures.
+    -- Or make this user configurable?
+    local items = {
+        "Show Warnings",
+        "Hide Warnings",
+    }
+    local opts = {
+        prompt = "When compiling:"
+    }
+    vim.ui.select(items,opts,solution.SetArchitecture)
+end
+
+solution.SetWarningDisplay = function(item,index)
+    if not item then
+        return
+    end
+    _ = index
+    if(item == "Show Warnings") then
+        SolutionConfig.display.HideCompilationWarnings = false
+    else
+        SolutionConfig.display.HideCompilationWarnings = true
+    end
 end
 
 solution.CompileByFilename = function(filename, options)
@@ -80,6 +107,8 @@ solution.CompileByFilename = function(filename, options)
 
     -- The items to be displayed
     local items = {}
+    -- Reset the quickfix list
+    vim.fn.setqflist(items)
     local stringLines = {} -- Used to detect duplicates
 
     -- Detects if we have entries to our quickfix table
@@ -110,13 +139,16 @@ solution.CompileByFilename = function(filename, options)
                         stringLines[theLine] = true
                         local r = Parser.ParseLine(theLine)
                         if r then
-                            -- Add the line to the table
-                            vim.list_extend(items,{r})
                             counter = counter + 1
                             if (r.type == 'E') then
                                 errors = errors + 1
+                                -- Add the line to the table
+                                vim.list_extend(items,{r})
                             else
                                 warnings = warnings + 1
+                                if(SolutionConfig.display.HideCompilationWarnings == false) then
+                                    vim.list_extend(items,{r})
+                                end
                             end
                         end
                     end
