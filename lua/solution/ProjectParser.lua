@@ -1,6 +1,7 @@
 local xml2lua = require("xml2lua")
 local handler = require("xml2lua.xmlhandler.tree")
 
+
 local ProjectParser = {}
 
 --- Parses an xml project project file
@@ -20,11 +21,13 @@ ProjectParser.GetBinaryOutput = function(filename)
     local path = require("solution.path")
     local os = require("solution.osutils")
     -- asume we receive a csproj as a filename
-    local parent = path.GetParrentDirectory(filename)
-    print("Parent:" .. parent)
-    local projName = path.GetFilenameFromPath(filename)
-    print("Name:" .. projName)
+    local parent = path.GetParrentDirectory(filename,os.seperator())
+    -- Without extension
+    local projName = path.GetFilenameFromPath(filename, false)
 
+    -- TODO: handle debug and release
+    -- TODO: handle net6.0 net7.0
+    --
     local output = parent .. os.seperator() .. "bin" .. os.seperator() .. projName .. ".dll"
     print("Output:" .. output)
     return output
