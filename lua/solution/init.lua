@@ -415,7 +415,9 @@ solution.FunctionTest = function()
     --local p = require("solution.SolutionParser")
     --print("Hello")
     --p.ParseSolution("C:/users/Admin/source/repos/AIStream/AIStream.sln")
-    solution.SetTest()
+    --p.ParseSolution("C:/users/Admin/source/repos/AIStream/AIStream.sln")
+    local p = require("solution.ProjectParser")
+    p.GetBinaryOutput("C:/users/Admin/source/repos/AIStream/AIStream.sln")
 end
 
 return solution
