@@ -147,9 +147,16 @@ SolutionParser.ParseSolution = function(filename)
     local state = "preamble"
     -- The table that will contain the end result.
     local solution = {
-        projects = {}
+        projects = {},
+        global={
+            presolution = {},
+            postsolution = {}
+        }
     }
+    -- For each line in the file
     for line in io.lines(filename) do
+        -- When we find the MinimumVisualStudioVersion text in a line then
+        -- this means that we move on from parsing
         local i, j = string.find(line, "MinimumVisualStudioVersion")
         if(i ~= nil and j ~= nil) then
             state = "projects"
