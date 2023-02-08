@@ -17,7 +17,7 @@ utils.StringStartsWith = function(theString, thePattern)
 end
 
 utils.StringTrimWhiteSpace = function(s)
-   return s:gsub("^%s+", ""):gsub("%s+$", "")
+   return s:gsub("^[%s\t]+", ""):gsub("[%s\t]+$", "")
 end
 
 utils.StringIsNullOrWhiteSpace = function(s)
