@@ -182,6 +182,53 @@ local function ParseProject(fileHandle,startPosition)
     end
 end
 
+local function ProcessRawProjectConfigurations(projects,solConfigs,rawConfigurations)
+    -- Instead of parsing the data line by line, we parse it project by project,
+    -- constructing the  entry name ("{A6F99D27-47B9-4EA4-BFC9-25157CBDC281}.Release|Any CPU.ActiveCfg")
+    -- and retrieving its value from the raw data. The reason for this is that
+    -- the IDE does it this way, and as the result the '.' character is allowed
+    -- in configuration names although it technically separates different parts
+    -- of the entry name string. This could lead to ambiguous results if we tried
+    -- to parse the entry name instead of constructing it and looking it up.
+    -- Although it's pretty unlikely that this would ever be a problem, it's
+    -- safer to do it the same way VS IDE does it.
+    
+    --print("The Solutions")
+    --print(vim.inspect(solConfigs))
+    local ProjectConfigurations = {
+    }
+    for i,project in ipairs(projects) do
+        --print("The Project: "..project['GUID'])
+        -- foreach (SolutionConfigurationInSolution solutionConfiguration in _solutionConfigurations)
+        for key,solConf in pairs(solConfigs) do
+            for _, platformValue in pairs(solConf) do
+                -- The "ActiveCfg" entry defines the active project configuration in the given solution configuration
+                -- This entry must be present for every possible solution configuration/project combination.
+                local fullConfig = key .."|".. platformValue
+                local entryNameActiveConfig = string.format("{%s}.%s.ActiveCfg",project["GUID"], fullConfig);
+                --print(entryNameActiveConfig)
+                -- The "Build.0" entry tells us whether to build the project configuration in the given solution configuration.
+                -- Technically, it specifies a configuration name of its own which seems to be a remnant of an initial, 
+                -- more flexible design of solution configurations (as well as the '.0' suffix - no higher values are ever used). 
+                -- The configuration name is not used, and the whole entry means "build the project configuration" 
+                -- if it's present in the solution file, and "don't build" if it's not.
+                local entryNameBuild = string.format("{%s}.%s.Build.0",project["GUID"], fullConfig);
+                --print(entryNameBuild)
+                if rawConfigurations[entryNameActiveConfig] then
+                    --print("Adding configuration")
+                    local projectConfiguration = {
+                        ProjectName = project["name"],
+                        ProjectGUID = project["GUID"],
+                        Configuration = key,
+                        Platform = platformValue,
+                    }
+                    table.insert(ProjectConfigurations,projectConfiguration)
+                end
+            end
+        end
+    end
+    return ProjectConfigurations
+end
 
 SolutionParser.ParseNestedProjects = function(fileHandle,startPosition)
     --  What we need to parse is the following.
@@ -215,10 +262,126 @@ SolutionParser.ParseNestedProjects = function(fileHandle,startPosition)
     return result
 end
 
-SolutionParser.ParseSolutionConfigurations = function(file,position)
+SolutionParser.ParseSolutionConfigurations = function(fileHandle,startPosition)
+    -- GlobalSection(SolutionConfigurationPlatforms) = preSolution
+    --     Debug|Any CPU = Debug|Any CPU
+    --     Release|Any CPU = Release|Any CPU
+    -- EndGlobalSection
+    fileHandle:seek("set",startPosition)
+    local utils = require("solution.utils")
+
+    local SolutionConfigurations = {
+    }
+    repeat
+        local line = fileHandle:read()
+        --if(line ~= nil) then
+        --    print("Line parsed:"..line)
+        --end
+
+        if(line == nil or utils.StringTrimWhiteSpace(line) == "EndGlobalSection") then
+            -- This is a normal ending for the project get our current position
+            -- and return it to the calling function along with our project.
+            break
+        elseif (utils.StringIsNullOrWhiteSpace(line) or string.sub(line,1,1) == "#") then
+            -- Coninue here, but lua has no such statement. So we just do nothing.
+            goto continue
+        else
+            -- If we are here we need to parse. To do that locate the = character
+            local i,_ = string.find(line,"=")
+            if(i == nil) then
+                goto continue
+            end
+            -- There should be only one = character. If we find another one then raise
+            -- an error.
+            local a,_ = string.find(line,"=",i+1)
+            if(a ~= nil) then
+                goto continue
+            end
+
+            local beforeEqual = utils.StringTrimWhiteSpace(string.sub(line,1,i-1))
+            local afterEqual = utils.StringTrimWhiteSpace(string.sub(line,i+1,string.len(line)))
+            if(beforeEqual ~= afterEqual) then
+                -- Two halves are not equal. ignoring.
+                goto continue
+            end
+
+            i,_ = string.find(beforeEqual,"|")
+            local config = string.sub(beforeEqual,1,i-1)
+            local plat   = string.sub(beforeEqual,i+1,string.len(beforeEqual))
+            if not SolutionConfigurations[config] then
+                SolutionConfigurations[config] = {}
+            end
+            table.insert(SolutionConfigurations[config],plat)
+        end
+        ::continue::
+    until(false)
+    local pos = fileHandle:seek()
+
+    --print("Breaking with null line:")
+    return SolutionConfigurations,pos
 end
 
-SolutionParser.ParseProjectConfigurations = function()
+SolutionParser.ParseProjectConfigurations = function(fileHandle,startPosition)
+    -- GlobalSection(ProjectConfigurationPlatforms) = postSolution
+    --  {6185CC21-BE89-448A-B3C0-D1C27112E595}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+    --  {6185CC21-BE89-448A-B3C0-D1C27112E595}.Debug|Any CPU.Build.0 = Debug|Any CPU
+    --  {6185CC21-BE89-448A-B3C0-D1C27112E595}.Debug|Mixed Platforms.ActiveCfg = Release|Any CPU
+    --  {6185CC21-BE89-448A-B3C0-D1C27112E595}.Debug|Mixed Platforms.Build.0 = Release|Any CPU
+    --  {6185CC21-BE89-448A-B3C0-D1C27112E595}.Debug|Win32.ActiveCfg = Debug|Any CPU
+    --  {A6F99D27-47B9-4EA4-BFC9-25157CBDC281}.Release|Any CPU.ActiveCfg = Release|Win32
+    --  {A6F99D27-47B9-4EA4-BFC9-25157CBDC281}.Release|Mixed Platforms.ActiveCfg = Release|Win32
+    --  {A6F99D27-47B9-4EA4-BFC9-25157CBDC281}.Release|Mixed Platforms.Build.0 = Release|Win32
+    --  {A6F99D27-47B9-4EA4-BFC9-25157CBDC281}.Release|Win32.ActiveCfg = Release|Win32
+    --  {A6F99D27-47B9-4EA4-BFC9-25157CBDC281}.Release|Win32.Build.0 = Release|Win32
+    -- EndGlobalSection
+    fileHandle:seek("set",startPosition)
+    local utils = require("solution.utils")
+
+    local RawProjectConfigurations = {
+    }
+    repeat
+        local line = fileHandle:read()
+        --if(line ~= nil) then
+        --    print("Line parsed:"..line)
+        --end
+
+        if(line == nil or utils.StringTrimWhiteSpace(line) == "EndGlobalSection") then
+            -- This is a normal ending for the project get our current position
+            -- and return it to the calling function along with our project.
+            break
+        elseif (utils.StringIsNullOrWhiteSpace(line) or string.sub(line,1,1) == "#") then
+            -- Coninue here, but lua has no such statement. So we just do nothing.
+            goto continue
+        else
+
+            -- Find | character. It is a seperator. If we don't find it ignore the line.
+            local i,_ = string.find(line,"|")
+            if(i == nil) then
+                goto continue
+            end
+
+            -- If we are here we need to parse. To do that locate the = character
+            i,_ = string.find(line,"=")
+            if(i == nil) then
+                goto continue
+            end
+            -- There should be only one = character. If we find another one then raise
+            -- an error.
+            local a,_ = string.find(line,"=",i+1)
+            if(a ~= nil) then
+                goto continue
+            end
+
+            local beforeEqual = utils.StringTrimWhiteSpace(string.sub(line,1,i-1))
+            local afterEqual = utils.StringTrimWhiteSpace(string.sub(line,i+1,string.len(line)))
+            RawProjectConfigurations[beforeEqual]=afterEqual
+        end
+        ::continue::
+    until(false)
+    local pos = fileHandle:seek()
+
+    print("Project Configuration Parser: Breaking with null line:")
+    return RawProjectConfigurations,pos
 end
 
 SolutionParser.ParseVisualStudioVersion = function(line)
@@ -240,7 +403,9 @@ SolutionParser.ParseSolution = function(filename)
     local solution = {
         VisualStudioVersion = nil,
         MinimumVisualStudioVersion = nil,
-        projects = {},
+        Projects = {},
+        SolutionConfigurations = {},
+        ProjectConfigurations = {}
     }
 
     -- A value to check the region. Can have the following values:
@@ -275,15 +440,29 @@ SolutionParser.ParseSolution = function(filename)
             -- function.
             local a, pos = ParseProject(file,previousPosition)
             if a ~= nil then
-                table.insert(solution.projects, a)
+                table.insert(solution.Projects, a)
             end
             file:seek("set",pos)
-            previousPosition = file:seek()
-            --return solution
-            break
         elseif (utils.StringStartsWith(line,"GlobalSection(NestedProjects)")) then
-        elseif (utils.StringStartsWith(line,"GlobalSection(SolutionConfigurationPlatforms)")) then
-        elseif (utils.StringStartsWith(line,"GlobalSection(ProjectConfigurationPlatforms)")) then
+        elseif (utils.StringStartsWith(utils.StringTrimWhiteSpace(line),"GlobalSection(SolutionConfigurationPlatforms)")) then
+            local a, pos = SolutionParser.ParseSolutionConfigurations(file,previousPosition)
+            if a ~= nil then
+                solution.SolutionConfigurations = a
+                --table.insert(solution.projects, a)
+            end
+            file:seek("set",pos)
+            --return solution
+        elseif (utils.StringStartsWith(utils.StringTrimWhiteSpace(line),"GlobalSection(ProjectConfigurationPlatforms)")) then
+            local a, pos = SolutionParser.ParseProjectConfigurations(file,previousPosition)
+            if a ~= nil then
+                --print(vim.inspect(a))
+                solution.ProjectConfigurations = ProcessRawProjectConfigurations(solution.Projects,solution.SolutionConfigurations,a)
+                --table.insert(solution.projects, a)
+            else
+                print("Project Configurations were parsed as nil!")
+            end
+            file:seek("set",pos)
+            --return solution
         elseif (utils.StringStartsWith(line,"VisualStudioVersion")) then
             solution.VisualStudioVersion = SolutionParser.ParseVisualStudioVersion(line)
         elseif (utils.StringStartsWith(line,"MinimumVisualStudioVersion")) then
@@ -291,7 +470,7 @@ SolutionParser.ParseSolution = function(filename)
         else
             -- Do nothing
         end
-            previousPosition = file:seek()
+        previousPosition = file:seek()
     end
 
     print(vim.inspect(solution))
