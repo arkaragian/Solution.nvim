@@ -21,6 +21,18 @@ utils.StringTrimWhiteSpace = function(s)
 end
 
 utils.StringIsNullOrWhiteSpace = function(s)
+    if (s is nil) then
+        return true
+    end
+
+    if (string.len(s) == 0) then
+        return true
+    end
+
+    local i,_ = string.find(s,"%w")
+    if(i ~= nil) then
+        return false
+    end
 end
 
 
