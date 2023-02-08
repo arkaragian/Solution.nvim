@@ -1,3 +1,16 @@
+-- Author: Aris Karagiannidis
+-- e-mail: arkaragian@gmail.com
+--
+-- The format of the solution file is actually is not throrougly documented.
+-- At least I have not found any good source of documentation.
+--
+-- One good way to make sense of that is happening is to see what MSBuild is
+-- actually doing. Fortunatelly microsoft has made this open source. The repo
+-- is located : https://github.com/dotnet/msbuild
+-- 
+-- The file that we care about is:
+-- https://github.com/dotnet/msbuild/blob/main/src/Build/Construction/Solution/SolutionFile.cs
+
 local SolutionParser = {}
 
 -- See https://www.codeproject.com/Reference/720512/List-of-Visual-Studio-Project-Type-GUIDs
@@ -62,17 +75,19 @@ local ProjectTypes = {
 local path = require("solution.path")
 
 local function ParseProjectLine(line)
+    --  Parse the following
+    --  Project("{Project type GUID}") = "Project name", "Relative path to project file", "{Project GUID}"
     --Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AIStream", "AIStream\AIStream.csproj", "{901BBF64-7D29-4DC4-BED4-61DEEDA35237}"
     --EndProject
     --print("Parsing Line:" .. line)
-    local patternStart, patternEnd = string.find(line, "EndProject")
+    --local patternStart, patternEnd = string.find(line, "EndProject")
 
-    if(patternStart ~= nil and patternEnd ~= nil) then
+    --if(patternStart ~= nil and patternEnd ~= nil) then
         -- We have matched the EndProject. This means that there is nothing
         -- to do. Just return.
-        return nil
-    end
-    patternStart, patternEnd = string.find(line, "Project")
+    --    return nil
+    --end
+    local patternStart, patternEnd = string.find(line, "Project")
 
     if(patternStart == nil or patternEnd == nil) then
         --We have no match. There is nothing to do.
@@ -116,21 +131,103 @@ local function ParseProjectLine(line)
     end
 end
 
---- DOMN'T Call that function. It is still WIP.
-local function ParseGlobalLine(line)
-    local patternStart, patternEnd = string.find(line, "EndGlobalSection")
-
-    if(patternStart ~= nil and patternEnd ~= nil) then
-        -- We have matched an EndGlobalSection Line. Just return.
-        return nil
+--- Parse a project in a given open handle with the given start position
+-- Description
+-- @param Parameter Name Parameter Description
+local function ParseProject(fileHandle,startPosition)
+    --  What we need to parse is the following.
+    --  Project("{Project type GUID}") = "Project name", "Relative path to project file", "{Project GUID}"
+    --      ProjectSection(ProjectDependencies) = postProject
+    --          {Parent project unique name} = {Parent project unique name}
+    --          ...
+    --      EndProjectSection
+    --  EndProject
+    fileHandle:seek("set",startPosition)
+    local line = fileHandle:read()
+    local project = ParseProjectLine(line)
+    if(project == nil) then
+        print("Error could not parse project!")
+        return
     end
 
-    patternStart, patternEnd = string.find(line, "EndGlobal")
+    local utils = require("solution.utils")
+    while(true) do
+        line = fileHandle:read()
+        if(line == nil) then
+            print("No more lines to read. Exiting..")
+            break
+        end
 
-    if(patternStart ~= nil and patternEnd ~= nil) then
-        -- We have matched an EndGlobal section. Just return.
-        return nil
+        if(line == "EndProject") then
+            -- This is a normal ending for the project get our current position
+            -- and return it to the calling function along with our project.
+            local pos = fileHandle:seek()
+            return project, pos
+        elseif (utils.StringStartsWith("ProjectSection(ProjectDependencies)")) then
+            -- We have a ProjectDependencies section.  Each subsequent line should identify
+            -- a dependency. For now we don't need to parse those. I am unsure if the data here
+            -- is of value to the plugin
+        elseif (utils.StringStartsWith("ProjectSection(WebsiteProperties)")) then
+            -- We have a WebsiteProperties section.  This section is present only in Venus
+            -- projects, and contains properties that are needed in order to call the 
+            -- AspNetCompiler task. However I am not sure on how those properties
+            -- will be used in our plugin. For now we don't need to parse those.
+            -- I am unsure if the data here is of value to the plugin
+        elseif (utils.StringStartsWith("Project(")) then
+            -- Another Project spotted instead of EndProject for the current one - solution file is malformed
+            -- We don't support this. Print an error for the user.
+            print("Detected nested project definitions. The solution file is malformed.")
+        else
+        end
     end
+end
+
+
+SolutionParser.ParseNestedProjects = function(fileHandle,startPosition)
+    --  What we need to parse is the following.
+    --  Project("{Project type GUID}") = "Project name", "Relative path to project file", "{Project GUID}"
+    --      ProjectSection(ProjectDependencies) = postProject
+    --          {Parent project unique name} = {Parent project unique name}
+    --          ...
+    --      EndProjectSection
+    --  EndProject
+    fileHandle:seek("set",startPosition)
+    local utils = require("solution.utils")
+
+    local result = {}
+    repeat
+        local line = fileHandle:read()
+        if(line == nil) then
+            print("No more lines to read. Exiting..")
+            break
+        end
+
+        if(line == nil or line == "EndGlobalSection") then
+            -- This is a normal ending for the project get our current position
+            -- and return it to the calling function along with our project.
+            break
+        elseif (utils.StringIsNullOrWhiteSpace(line) or string.sub(line,1,1) == "#") then
+            -- Coninue here, but lua has no such statement. So we just do nothing.
+        else
+        end
+    until(true)
+
+    return result
+end
+
+SolutionParser.ParseSolutionConfigurations = function(file,position)
+end
+
+SolutionParser.ParseProjectConfigurations = function()
+end
+
+SolutionParser.ParseVisualStudioVersion = function(line)
+    -- Input line is of the form
+    --MinimumVisualStudioVersion = 10.0.40219.1
+    local i,_ = string.find(line, '=')
+    local value = string.sub(line,i+1)
+
+    return require("solution.utils").StringTrimWhiteSpace(value)
 end
 
 SolutionParser.ParseSolution = function(filename)
@@ -140,41 +237,61 @@ SolutionParser.ParseSolution = function(filename)
         return
     end
 
-    -- A value to check the region. Can have the following values:
-    -- preamble
-    -- projects
-    -- global
-    local state = "preamble"
-    -- The table that will contain the end result.
     local solution = {
+        VisualStudioVersion = nil,
+        MinimumVisualStudioVersion = nil,
         projects = {},
-        global={
-            presolution = {},
-            postsolution = {}
-        }
     }
-    -- For each line in the file
-    for line in io.lines(filename) do
-        -- When we find the MinimumVisualStudioVersion text in a line then
-        -- this means that we move on from parsing
-        local i, j = string.find(line, "MinimumVisualStudioVersion")
-        if(i ~= nil and j ~= nil) then
-            state = "projects"
+
+    -- A value to check the region. Can have the following values:
+    -- Preamble
+    -- Project
+    -- NestedProject
+    -- ProjectConfigurationPlatforms
+    -- SolutionConfigurationPlatforms
+    local state = "Preamble"
+
+
+    local utils = require("solution.utils")
+    -- Use read mode for the file.
+    local file = io.open(filename,"r")
+    if(file == nil) then
+        print("Could not open file")
+        return
+    end
+    -- At some points we need to rewind thus 
+    local previousPosition = 0
+    while(true) do
+        local line = file:read()
+        if(line == nil) then
+            print("No more lines to read. Exiting..")
+            break
         end
 
-        i, j = string.find(line, "Global")
-        if(i ~= nil and j ~= nil) then
-            state = "global"
-        end
-        -- Parse line.
-        if (state == "projects") then
-            local a = ParseProjectLine(line)
+        if(utils.StringStartsWith(line,"Project(")) then
+            -- We have now read a line that denotes the start of a project.
+            -- Since it's parsing is non trivial rewind the file to the end
+            -- of the previous line and delegate the parsing to the ParseProject
+            -- function.
+            local a, pos = ParseProject(file,previousPosition)
             if a ~= nil then
                 table.insert(solution.projects, a)
             end
-        elseif (state == "global") then
-            _ = 5
+            file:seek("set",pos)
+            previousPosition = file:seek()
+            --return solution
+            break
+        elseif (utils.StringStartsWith(line,"GlobalSection(NestedProjects)")) then
+        elseif (utils.StringStartsWith(line,"GlobalSection(SolutionConfigurationPlatforms)")) then
+        elseif (utils.StringStartsWith(line,"GlobalSection(ProjectConfigurationPlatforms)")) then
+        elseif (utils.StringStartsWith(line,"VisualStudioVersion")) then
+            solution.VisualStudioVersion = SolutionParser.ParseVisualStudioVersion(line)
+        elseif (utils.StringStartsWith(line,"MinimumVisualStudioVersion")) then
+            solution.MinimumVisualStudioVersion= SolutionParser.ParseVisualStudioVersion(line)
+        else
+            -- Do nothing
         end
+            previousPosition = file:seek()
     end
 
     print(vim.inspect(solution))
