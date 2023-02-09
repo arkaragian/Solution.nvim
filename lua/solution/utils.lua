@@ -21,7 +21,7 @@ utils.StringTrimWhiteSpace = function(s)
 end
 
 utils.StringIsNullOrWhiteSpace = function(s)
-    if (s is nil) then
+    if (s == nil) then
         return true
     end
 
