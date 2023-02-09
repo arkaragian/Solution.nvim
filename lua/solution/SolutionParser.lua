@@ -435,6 +435,7 @@ SolutionParser.ParseSolution = function(filename)
     end
 
     local solution = {
+        SolutionPath = filename,
         VisualStudioVersion = nil,
         MinimumVisualStudioVersion = nil,
         Projects = {},
