@@ -10,10 +10,17 @@
 -- 
 -- The file that we care about is:
 -- https://github.com/dotnet/msbuild/blob/main/src/Build/Construction/Solution/SolutionFile.cs
+-- 
+-- Now even with that we are not sure that we need to support all the features
+-- of V***** S***** since some of them are quite internal to the IDE. Only time
+-- will tell.
 
 local SolutionParser = {}
 
+-- This is the project types that are defined by Microsoft.
+-- Some are quite historical like the Zune! (https://www.youtube.com/watch?v=POIXq7999aM)
 -- See https://www.codeproject.com/Reference/720512/List-of-Visual-Studio-Project-Type-GUIDs
+-- May be updated in the future if needed.
 local ProjectTypes = {
     ["06A35CCD-C46D-44D5-987B-CF40FF872267"]="Deployment Merge Module",
     ["14822709-B5A1-4724-98CA-57A101D1B079"]="Workflow (C#)",
@@ -74,19 +81,15 @@ local ProjectTypes = {
 
 local path = require("solution.path")
 
+--- Parses a .sln project line that contains the project information such as
+-- type, name, relative path and it's GUID.
+-- @param line The line that contains the information
 local function ParseProjectLine(line)
-    --  Parse the following
+    --  What we expect to parse is the following line
     --  Project("{Project type GUID}") = "Project name", "Relative path to project file", "{Project GUID}"
-    --Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AIStream", "AIStream\AIStream.csproj", "{901BBF64-7D29-4DC4-BED4-61DEEDA35237}"
-    --EndProject
-    --print("Parsing Line:" .. line)
-    --local patternStart, patternEnd = string.find(line, "EndProject")
+    --  The logic is to find the delimiting characters or patterns and then get the substrings between
+    --  the found positions..
 
-    --if(patternStart ~= nil and patternEnd ~= nil) then
-        -- We have matched the EndProject. This means that there is nothing
-        -- to do. Just return.
-    --    return nil
-    --end
     local patternStart, patternEnd = string.find(line, "Project")
 
     if(patternStart == nil or patternEnd == nil) then
@@ -94,35 +97,41 @@ local function ParseProjectLine(line)
         return nil
     end
 
+    -- If the line seems to be valid.
     if(patternStart ~= nil and patternEnd ~= nil) then
-
         local project = {}
 
+        -- Find the GUIDs. The first one denotes the project type. The second
+        -- is the project identifier.
         local counter = 1
         for guid in string.gmatch(line, "%x%x%x%x%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%x%x%x%x%x%x%x%x") do
             if(counter == 1) then
-                project.typeGUID = guid
-                project.type = ProjectTypes[guid]
+                project.TypeGUID = guid
+                project.Type = ProjectTypes[guid]
             else
                 project.GUID = guid
             end
             counter = counter + 1
         end
 
-        -- Project word found let's find the equal sign so that we can locate the project.
-        patternStart,_ = string.find(line,"=")
-        --print("Found = at position:"..i)
-        patternStart,patternEnd = string.find(line,"\"",patternStart)
-        _,patternEnd = string.find(line,"\"",patternEnd+1)
-        --print("Found quotes at i:"..i.." j:"..j)
+        local equalLocation,_ = string.find(line,"=")
+        -- Find the first quote after the equal sign
+        patternStart,_= string.find(line,"\"",equalLocation+1)
+        -- Find the second Quote quote
+        _,patternEnd = string.find(line,"\"",patternStart+1)
+
+        -- Name is the string between the quotes.
         local ProjectName = string.sub(line,patternStart+1,patternEnd-1)
 
-        patternStart,patternEnd = string.find(line,",",patternEnd)
-        patternStart,_ = string.find(line,"\"",patternStart)
+        local commaLocation,_ = string.find(line,",",patternEnd)
+
+        -- Again find the next pair of quotes
+        patternStart,_ = string.find(line,"\"",commaLocation+1)
         _,patternEnd = string.find(line,"\"",patternStart+1)
         local ProjectRelativePath = string.sub(line,patternStart+1,patternEnd-1)
 
-        project.name = ProjectName
+        -- Set the relevant fields
+        project.Name = ProjectName
         project.RelPath = ProjectRelativePath
 
         return project
@@ -131,9 +140,9 @@ local function ParseProjectLine(line)
     end
 end
 
---- Parse a project in a given open handle with the given start position
--- Description
--- @param Parameter Name Parameter Description
+--- Parse a project and it's subtree in with the given start position
+-- @param fileHandle The file hanle of the .sln file. Must be already opened.
+-- @param startPosition The position within the file where the project definition starts.
 local function ParseProject(fileHandle,startPosition)
     --  What we need to parse is the following.
     --  Project("{Project type GUID}") = "Project name", "Relative path to project file", "{Project GUID}"
@@ -142,46 +151,67 @@ local function ParseProject(fileHandle,startPosition)
     --          ...
     --      EndProjectSection
     --  EndProject
+    --
+    -- Rewind the open file to the start position
     fileHandle:seek("set",startPosition)
     local line = fileHandle:read()
+    -- The parsing of the first line is quite big. Delegate to a function of
+    -- its own
     local project = ParseProjectLine(line)
     if(project == nil) then
         print("Error could not parse project!")
-        return
+        local pos = fileHandle:seek()
+        return nil, pos
     end
 
     local utils = require("solution.utils")
+    -- Start reading lines
     while(true) do
         line = fileHandle:read()
+        -- We have reached the end of the file. But not the normal ending of
+        -- the project.
         if(line == nil) then
             print("No more lines to read. Exiting..")
-            break
+            local pos = fileHandle:seek()
+            return nil, pos
         end
 
+        -- Bellow are multiple cases. We don't handle them for the momment.
+        -- Just keep them for future implementations if needed in the future.
         if(line == "EndProject") then
-            -- This is a normal ending for the project get our current position
-            -- and return it to the calling function along with our project.
-            local pos = fileHandle:seek()
-            return project, pos
+            -- This is a normal ending for the project. Break the loop in order
+            -- to return
+            break
         elseif (utils.StringStartsWith("ProjectSection(ProjectDependencies)")) then
             -- We have a ProjectDependencies section.  Each subsequent line should identify
             -- a dependency. For now we don't need to parse those. I am unsure if the data here
             -- is of value to the plugin
+            goto continue
         elseif (utils.StringStartsWith("ProjectSection(WebsiteProperties)")) then
             -- We have a WebsiteProperties section.  This section is present only in Venus
             -- projects, and contains properties that are needed in order to call the 
             -- AspNetCompiler task. However I am not sure on how those properties
             -- will be used in our plugin. For now we don't need to parse those.
             -- I am unsure if the data here is of value to the plugin
+            goto continue
         elseif (utils.StringStartsWith("Project(")) then
-            -- Another Project spotted instead of EndProject for the current one - solution file is malformed
-            -- We don't support this. Print an error for the user.
+            -- Another Project spotted instead of EndProject for the current
+            -- one - solution file is malformed We don't support this. Print
+            -- an error for the user.
             print("Detected nested project definitions. The solution file is malformed.")
         else
         end
+        ::continue::
     end
+    local pos = fileHandle:seek()
+    return project, pos
 end
 
+--- Generate the projects configurations table based on the available projects,
+-- the available solution configurations and the raw parsed configuration strings.
+-- @param projects The list of projects that the solution contains.
+-- @param solConfigs The list of solution configurations.
+-- @param rawConfigurations The list of raw project configuration strings.
 local function ProcessRawProjectConfigurations(projects,solConfigs,rawConfigurations)
     -- Instead of parsing the data line by line, we parse it project by project,
     -- constructing the  entry name ("{A6F99D27-47B9-4EA4-BFC9-25157CBDC281}.Release|Any CPU.ActiveCfg")
@@ -192,32 +222,28 @@ local function ProcessRawProjectConfigurations(projects,solConfigs,rawConfigurat
     -- to parse the entry name instead of constructing it and looking it up.
     -- Although it's pretty unlikely that this would ever be a problem, it's
     -- safer to do it the same way VS IDE does it.
-    
-    --print("The Solutions")
-    --print(vim.inspect(solConfigs))
+
     local ProjectConfigurations = {
     }
     for i,project in ipairs(projects) do
-        --print("The Project: "..project['GUID'])
-        -- foreach (SolutionConfigurationInSolution solutionConfiguration in _solutionConfigurations)
         for key,solConf in pairs(solConfigs) do
             for _, platformValue in pairs(solConf) do
                 -- The "ActiveCfg" entry defines the active project configuration in the given solution configuration
                 -- This entry must be present for every possible solution configuration/project combination.
                 local fullConfig = key .."|".. platformValue
                 local entryNameActiveConfig = string.format("{%s}.%s.ActiveCfg",project["GUID"], fullConfig);
-                --print(entryNameActiveConfig)
                 -- The "Build.0" entry tells us whether to build the project configuration in the given solution configuration.
                 -- Technically, it specifies a configuration name of its own which seems to be a remnant of an initial, 
                 -- more flexible design of solution configurations (as well as the '.0' suffix - no higher values are ever used). 
                 -- The configuration name is not used, and the whole entry means "build the project configuration" 
                 -- if it's present in the solution file, and "don't build" if it's not.
+                -- TODO: See how to use this. Maybe have additional field that indicates if the project will be built?
                 local entryNameBuild = string.format("{%s}.%s.Build.0",project["GUID"], fullConfig);
                 --print(entryNameBuild)
                 if rawConfigurations[entryNameActiveConfig] then
                     --print("Adding configuration")
                     local projectConfiguration = {
-                        ProjectName = project["name"],
+                        ProjectName = project["Name"],
                         ProjectGUID = project["GUID"],
                         Configuration = key,
                         Platform = platformValue,
@@ -230,7 +256,10 @@ local function ProcessRawProjectConfigurations(projects,solConfigs,rawConfigurat
     return ProjectConfigurations
 end
 
-SolutionParser.ParseNestedProjects = function(fileHandle,startPosition)
+--- Parse the nested projects of a project
+-- @param fileHandle The file hanle of the .sln file. Must be already opened.
+-- @param startPosition The position within the file where the nester projects starts.
+local function ParseNestedProjects(fileHandle,startPosition)
     --  What we need to parse is the following.
     --  Project("{Project type GUID}") = "Project name", "Relative path to project file", "{Project GUID}"
     --      ProjectSection(ProjectDependencies) = postProject
@@ -262,7 +291,10 @@ SolutionParser.ParseNestedProjects = function(fileHandle,startPosition)
     return result
 end
 
-SolutionParser.ParseSolutionConfigurations = function(fileHandle,startPosition)
+--- Parse the solution configurations
+-- @param fileHandle The file hanle of the .sln file. Must be already opened.
+-- @param startPosition The position within the file where the configurations start
+local function ParseSolutionConfigurations(fileHandle,startPosition)
     -- GlobalSection(SolutionConfigurationPlatforms) = preSolution
     --     Debug|Any CPU = Debug|Any CPU
     --     Release|Any CPU = Release|Any CPU
@@ -274,9 +306,6 @@ SolutionParser.ParseSolutionConfigurations = function(fileHandle,startPosition)
     }
     repeat
         local line = fileHandle:read()
-        --if(line ~= nil) then
-        --    print("Line parsed:"..line)
-        --end
 
         if(line == nil or utils.StringTrimWhiteSpace(line) == "EndGlobalSection") then
             -- This is a normal ending for the project get our current position
@@ -316,12 +345,13 @@ SolutionParser.ParseSolutionConfigurations = function(fileHandle,startPosition)
         ::continue::
     until(false)
     local pos = fileHandle:seek()
-
-    --print("Breaking with null line:")
     return SolutionConfigurations,pos
 end
 
-SolutionParser.ParseProjectConfigurations = function(fileHandle,startPosition)
+--- Parse the project configurations
+-- @param fileHandle The file hanle of the .sln file. Must be already opened.
+-- @param startPosition The position within the file where the project configurations start
+local function ParseProjectConfigurations(fileHandle,startPosition)
     -- GlobalSection(ProjectConfigurationPlatforms) = postSolution
     --  {6185CC21-BE89-448A-B3C0-D1C27112E595}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
     --  {6185CC21-BE89-448A-B3C0-D1C27112E595}.Debug|Any CPU.Build.0 = Debug|Any CPU
@@ -384,7 +414,9 @@ SolutionParser.ParseProjectConfigurations = function(fileHandle,startPosition)
     return RawProjectConfigurations,pos
 end
 
-SolutionParser.ParseVisualStudioVersion = function(line)
+--- Parse the Visual Studio Version
+-- @param line The line that contains the information
+local function ParseVisualStudioVersion(line)
     -- Input line is of the form
     --MinimumVisualStudioVersion = 10.0.40219.1
     local i,_ = string.find(line, '=')
@@ -393,6 +425,8 @@ SolutionParser.ParseVisualStudioVersion = function(line)
     return require("solution.utils").StringTrimWhiteSpace(value)
 end
 
+--- Parses a .sln file into a lua structure
+-- @param filename The path to the file
 SolutionParser.ParseSolution = function(filename)
     local ext = path.GetFileExtension(filename)
     if (ext ~= ".sln") then
@@ -445,7 +479,7 @@ SolutionParser.ParseSolution = function(filename)
             file:seek("set",pos)
         elseif (utils.StringStartsWith(line,"GlobalSection(NestedProjects)")) then
         elseif (utils.StringStartsWith(utils.StringTrimWhiteSpace(line),"GlobalSection(SolutionConfigurationPlatforms)")) then
-            local a, pos = SolutionParser.ParseSolutionConfigurations(file,previousPosition)
+            local a, pos = ParseSolutionConfigurations(file,previousPosition)
             if a ~= nil then
                 solution.SolutionConfigurations = a
                 --table.insert(solution.projects, a)
@@ -453,7 +487,7 @@ SolutionParser.ParseSolution = function(filename)
             file:seek("set",pos)
             --return solution
         elseif (utils.StringStartsWith(utils.StringTrimWhiteSpace(line),"GlobalSection(ProjectConfigurationPlatforms)")) then
-            local a, pos = SolutionParser.ParseProjectConfigurations(file,previousPosition)
+            local a, pos = ParseProjectConfigurations(file,previousPosition)
             if a ~= nil then
                 --print(vim.inspect(a))
                 solution.ProjectConfigurations = ProcessRawProjectConfigurations(solution.Projects,solution.SolutionConfigurations,a)
@@ -464,9 +498,9 @@ SolutionParser.ParseSolution = function(filename)
             file:seek("set",pos)
             --return solution
         elseif (utils.StringStartsWith(line,"VisualStudioVersion")) then
-            solution.VisualStudioVersion = SolutionParser.ParseVisualStudioVersion(line)
+            solution.VisualStudioVersion = ParseVisualStudioVersion(line)
         elseif (utils.StringStartsWith(line,"MinimumVisualStudioVersion")) then
-            solution.MinimumVisualStudioVersion= SolutionParser.ParseVisualStudioVersion(line)
+            solution.MinimumVisualStudioVersion= ParseVisualStudioVersion(line)
         else
             -- Do nothing
         end
