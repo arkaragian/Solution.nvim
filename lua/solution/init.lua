@@ -46,6 +46,8 @@ solution.setup = function(config)
         SolutionConfig = config
     end
     solution.GetCompilerVersion()
+
+    vim.api.nvim_create_user_command("HelloSolution",'echo \"Hello Solution\"',{})
 end
 
 solution.SelectArchitecture = function()
