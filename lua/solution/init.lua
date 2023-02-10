@@ -50,16 +50,23 @@ solution.setup = function(config)
     vim.api.nvim_create_user_command("HelloSolution",'echo \"Hello Solution\"',{})
 end
 
-solution.SelectArchitecture = function()
-    -- TODO make sure to have all the dotnet provided architectures.
-    -- Or make this user configurable?
+solution.SelectConfiguration = function()
+
+    print("Selecting Platform")
+    -- TODO: Get the solution item here and extract all the platforms.
+    local sol = require("solution.SolutionParser").ParseSolution("C:/users/Admin/source/repos/AIStream/AIStream.sln")
+
+
     local items = {
-        "x86",
-        "x64",
-        "AnyCPU"
     }
+
+
+    for k,_ in pairs(sol.SolutionConfigurations) do
+        table.insert(items,k)
+    end
+
     local opts = {
-        prompt = "Change compile architecture to:"
+        prompt = "Select Build Configuration:"
     }
     vim.ui.select(items,opts,solution.SetArchitecture)
 end
