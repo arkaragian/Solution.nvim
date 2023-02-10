@@ -443,14 +443,6 @@ SolutionParser.ParseSolution = function(filename)
         ProjectConfigurations = {}
     }
 
-    -- A value to check the region. Can have the following values:
-    -- Preamble
-    -- Project
-    -- NestedProject
-    -- ProjectConfigurationPlatforms
-    -- SolutionConfigurationPlatforms
-    local state = "Preamble"
-
 
     local utils = require("solution.utils")
     -- Use read mode for the file.
@@ -508,7 +500,7 @@ SolutionParser.ParseSolution = function(filename)
         previousPosition = file:seek()
     end
 
-    print(vim.inspect(solution))
+    --print(vim.inspect(solution))
 
     return solution
 end
