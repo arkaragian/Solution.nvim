@@ -133,6 +133,7 @@ local function ParseProjectLine(line)
         -- Set the relevant fields
         project.Name = ProjectName
         project.RelPath = ProjectRelativePath
+        project._text = {}
 
         return project
     else
@@ -143,7 +144,7 @@ end
 --- Parse a project and it's subtree in with the given start position
 -- @param fileHandle The file hanle of the .sln file. Must be already opened.
 -- @param startPosition The position within the file where the project definition starts.
-local function ParseProject(fileHandle,startPosition)
+local function ParseProject(fileHandle,startPosition,lineCounter)
     --  What we need to parse is the following.
     --  Project("{Project type GUID}") = "Project name", "Relative path to project file", "{Project GUID}"
     --      ProjectSection(ProjectDependencies) = postProject
@@ -153,28 +154,44 @@ local function ParseProject(fileHandle,startPosition)
     --  EndProject
     --
     -- Rewind the open file to the start position
+    --
+
     fileHandle:seek("set",startPosition)
+    local result = {
+        project = nil,
+        position = startPosition,
+        line = lineCounter - 1 -- We have rewinded thus we just remove a line this will be overwritten down the line
+    }
     local line = fileHandle:read()
+    -- No need to add to the line counter since we are re-reading the line that
+    -- we have already encountered
+    if(line == nil) then
+        return result
+    end
+    --lineCounter = lineCounter + 1
+
     -- The parsing of the first line is quite big. Delegate to a function of
-    -- its own
+    -- its own. This function also creates the project structre which is returned
+    -- here and we can continue working from here.
     local project = ParseProjectLine(line)
     if(project == nil) then
         print("Error could not parse project!")
-        local pos = fileHandle:seek()
-        return nil, pos
+        result.position = fileHandle:seek()
+        return result
     end
 
     local utils = require("solution.utils")
+    local textIndex = 1
     -- Start reading lines
     while(true) do
         line = fileHandle:read()
         -- We have reached the end of the file. But not the normal ending of
         -- the project.
         if(line == nil) then
-            print("No more lines to read. Exiting..")
-            local pos = fileHandle:seek()
-            return nil, pos
+            result.position = fileHandle:seek()
+            return result
         end
+        lineCounter = lineCounter + 1
 
         -- Bellow are multiple cases. We don't handle them for the momment.
         -- Just keep them for future implementations if needed in the future.
@@ -182,29 +199,37 @@ local function ParseProject(fileHandle,startPosition)
             -- This is a normal ending for the project. Break the loop in order
             -- to return
             break
-        elseif (utils.StringStartsWith("ProjectSection(ProjectDependencies)")) then
+        elseif (utils.StringStartsWith(line,"ProjectSection(ProjectDependencies)")) then
             -- We have a ProjectDependencies section.  Each subsequent line should identify
             -- a dependency. For now we don't need to parse those. I am unsure if the data here
             -- is of value to the plugin
+            project._text[textIndex] = {lineCounter, line}
+            textIndex = textIndex + 1
             goto continue
-        elseif (utils.StringStartsWith("ProjectSection(WebsiteProperties)")) then
+        elseif (utils.StringStartsWith(line,"ProjectSection(WebsiteProperties)")) then
             -- We have a WebsiteProperties section.  This section is present only in Venus
             -- projects, and contains properties that are needed in order to call the 
             -- AspNetCompiler task. However I am not sure on how those properties
             -- will be used in our plugin. For now we don't need to parse those.
             -- I am unsure if the data here is of value to the plugin
+            project._text[textIndex] = {lineCounter, line}
+            textIndex = textIndex + 1
             goto continue
-        elseif (utils.StringStartsWith("Project(")) then
+        elseif (utils.StringStartsWith(line,"Project(")) then
             -- Another Project spotted instead of EndProject for the current
             -- one - solution file is malformed We don't support this. Print
             -- an error for the user.
             print("Detected nested project definitions. The solution file is malformed.")
         else
+            project._text[textIndex] = {lineCounter, line}
+            textIndex = textIndex + 1
         end
         ::continue::
     end
-    local pos = fileHandle:seek()
-    return project, pos
+    result.project = project
+    result.position = fileHandle:seek()
+    result.line = lineCounter
+    return result
 end
 
 --- Generate the projects configurations table based on the available projects,
@@ -294,7 +319,7 @@ end
 --- Parse the solution configurations
 -- @param fileHandle The file hanle of the .sln file. Must be already opened.
 -- @param startPosition The position within the file where the configurations start
-local function ParseSolutionConfigurations(fileHandle,startPosition)
+local function ParseSolutionConfigurations(fileHandle,startPosition, lineCounter)
     -- GlobalSection(SolutionConfigurationPlatforms) = preSolution
     --     Debug|Any CPU = Debug|Any CPU
     --     Release|Any CPU = Release|Any CPU
@@ -302,14 +327,30 @@ local function ParseSolutionConfigurations(fileHandle,startPosition)
     fileHandle:seek("set",startPosition)
     local utils = require("solution.utils")
 
+    local result = {
+        configurations = nil,
+        position = startPosition,
+        line = lineCounter - 1 -- We have rewinded thus we just remove a line this will be overwritten down the line
+    }
+
     local SolutionConfigurations = {
     }
+    lineCounter = lineCounter -1
     repeat
         local line = fileHandle:read()
 
-        if(line == nil or utils.StringTrimWhiteSpace(line) == "EndGlobalSection") then
+        if(line == nil) then
+            break
+        end
+
+        lineCounter = lineCounter + 1
+
+        if(utils.StringTrimWhiteSpace(line) == "EndGlobalSection") then
             -- This is a normal ending for the project get our current position
             -- and return it to the calling function along with our project.
+            --
+            -- We break just like before but now we have counted the line that we
+            -- parsed
             break
         elseif (utils.StringIsNullOrWhiteSpace(line) or string.sub(line,1,1) == "#") then
             -- Coninue here, but lua has no such statement. So we just do nothing.
@@ -337,6 +378,8 @@ local function ParseSolutionConfigurations(fileHandle,startPosition)
             i,_ = string.find(beforeEqual,"|")
             local config = string.sub(beforeEqual,1,i-1)
             local plat   = string.sub(beforeEqual,i+1,string.len(beforeEqual))
+            --TODO: Maybe refactor this part and keep the order of addition
+            -- This is important for solution writer
             if not SolutionConfigurations[config] then
                 SolutionConfigurations[config] = {}
             end
@@ -344,14 +387,16 @@ local function ParseSolutionConfigurations(fileHandle,startPosition)
         end
         ::continue::
     until(false)
-    local pos = fileHandle:seek()
-    return SolutionConfigurations,pos
+    result.configurations = SolutionConfigurations
+    result.position = fileHandle:seek()
+    result.line = lineCounter
+    return result
 end
 
 --- Parse the project configurations
 -- @param fileHandle The file hanle of the .sln file. Must be already opened.
 -- @param startPosition The position within the file where the project configurations start
-local function ParseProjectConfigurations(fileHandle,startPosition)
+local function ParseProjectConfigurations(fileHandle,startPosition,lineCounter)
     -- GlobalSection(ProjectConfigurationPlatforms) = postSolution
     --  {6185CC21-BE89-448A-B3C0-D1C27112E595}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
     --  {6185CC21-BE89-448A-B3C0-D1C27112E595}.Debug|Any CPU.Build.0 = Debug|Any CPU
@@ -367,15 +412,29 @@ local function ParseProjectConfigurations(fileHandle,startPosition)
     fileHandle:seek("set",startPosition)
     local utils = require("solution.utils")
 
+    local result = {
+        projectConfigurations = nil,
+        position = startPosition,
+        line = lineCounter - 1 -- We have rewinded thus we just remove a line this will be overwritten down the line
+    }
+
     local RawProjectConfigurations = {
     }
+
+    lineCounter = lineCounter -1
     repeat
         local line = fileHandle:read()
         --if(line ~= nil) then
         --    print("Line parsed:"..line)
         --end
 
-        if(line == nil or utils.StringTrimWhiteSpace(line) == "EndGlobalSection") then
+        if(line == nil) then
+            break
+        end
+
+        lineCounter = lineCounter + 1
+
+        if(utils.StringTrimWhiteSpace(line) == "EndGlobalSection") then
             -- This is a normal ending for the project get our current position
             -- and return it to the calling function along with our project.
             break
@@ -408,10 +467,11 @@ local function ParseProjectConfigurations(fileHandle,startPosition)
         end
         ::continue::
     until(false)
-    local pos = fileHandle:seek()
+    result.projectConfigurations = RawProjectConfigurations
+    result.position =fileHandle:seek()
+    result.line = lineCounter
 
-    print("Project Configuration Parser: Breaking with null line:")
-    return RawProjectConfigurations,pos
+    return result
 end
 
 --- Parse the Visual Studio Version
@@ -440,7 +500,8 @@ SolutionParser.ParseSolution = function(filename)
         MinimumVisualStudioVersion = nil,
         Projects = {},
         SolutionConfigurations = {},
-        ProjectConfigurations = {}
+        ProjectConfigurations = {},
+        _text = {}
     }
 
 
@@ -451,51 +512,62 @@ SolutionParser.ParseSolution = function(filename)
         print("Could not open file")
         return
     end
-    -- At some points we need to rewind thus 
+    -- At some points we need to rewind thus we need to remember our positions
     local previousPosition = 0
+    local lineCounter = 0
+    local textIndex = 1
     while(true) do
         local line = file:read()
         if(line == nil) then
             print("No more lines to read. Exiting..")
             break
         end
+        lineCounter = lineCounter + 1
 
         if(utils.StringStartsWith(line,"Project(")) then
             -- We have now read a line that denotes the start of a project.
             -- Since it's parsing is non trivial rewind the file to the end
             -- of the previous line and delegate the parsing to the ParseProject
             -- function.
-            local a, pos = ParseProject(file,previousPosition)
-            if a ~= nil then
-                table.insert(solution.Projects, a)
+            local result = ParseProject(file,previousPosition,lineCounter)
+            if result.project ~= nil then
+                table.insert(solution.Projects, result.project)
             end
-            file:seek("set",pos)
+            file:seek("set",result.position)
+            lineCounter = result.line
         elseif (utils.StringStartsWith(line,"GlobalSection(NestedProjects)")) then
+            -- TODO: Parse nested projects
+            solution._text[textIndex] = {lineCounter, line}
+            textIndex = textIndex + 1;
         elseif (utils.StringStartsWith(utils.StringTrimWhiteSpace(line),"GlobalSection(SolutionConfigurationPlatforms)")) then
-            local a, pos = ParseSolutionConfigurations(file,previousPosition)
-            if a ~= nil then
-                solution.SolutionConfigurations = a
-                --table.insert(solution.projects, a)
+            local result = ParseSolutionConfigurations(file,previousPosition,lineCounter)
+            if result.configurations ~= nil then
+                solution.SolutionConfigurations = result.configurations
             end
-            file:seek("set",pos)
-            --return solution
+            file:seek("set",result.position)
+            lineCounter = result.line
         elseif (utils.StringStartsWith(utils.StringTrimWhiteSpace(line),"GlobalSection(ProjectConfigurationPlatforms)")) then
-            local a, pos = ParseProjectConfigurations(file,previousPosition)
-            if a ~= nil then
+            local result = ParseProjectConfigurations(file,previousPosition, lineCounter)
+            if result.projectConfigurations ~= nil then
                 --print(vim.inspect(a))
-                solution.ProjectConfigurations = ProcessRawProjectConfigurations(solution.Projects,solution.SolutionConfigurations,a)
+                solution.ProjectConfigurations = ProcessRawProjectConfigurations(solution.Projects,solution.SolutionConfigurations,result.projectConfigurations)
                 --table.insert(solution.projects, a)
             else
                 print("Project Configurations were parsed as nil!")
             end
-            file:seek("set",pos)
+            file:seek("set",result.position)
+            lineCounter = result.line
             --return solution
         elseif (utils.StringStartsWith(line,"VisualStudioVersion")) then
             solution.VisualStudioVersion = ParseVisualStudioVersion(line)
         elseif (utils.StringStartsWith(line,"MinimumVisualStudioVersion")) then
             solution.MinimumVisualStudioVersion= ParseVisualStudioVersion(line)
         else
-            -- Do nothing
+            -- This is text that we store but does not offer any significant value
+            -- and is just output to the solution writer at the appropriate positions.
+            -- So in order to be good we need to filter
+            solution._text[textIndex] = {lineCounter, line}
+            textIndex = textIndex + 1;
         end
         previousPosition = file:seek()
     end
@@ -503,6 +575,30 @@ SolutionParser.ParseSolution = function(filename)
     --print(vim.inspect(solution))
 
     return solution
+end
+
+
+--- Displays a solution structure to a popup window
+-- @param theSolution The solution structure to be displayed
+SolutionParser.DisplaySolution = function(theSolution)
+    local win = require("solution.window")
+
+    local window = win.new(" " .. theSolution.SolutionPath .. " ")
+    window.PaintWindow()
+
+    local str = vim.inspect(theSolution)
+
+    local i = 0
+    local prev = 0
+    while(true) do
+        i,_ = string.find(str,"\n",i+1)
+        if(i == nil) then
+            break
+        end
+        local line = string.sub(str,prev+1,i-1)
+        window.AddLine(line)
+        prev = i
+    end
 end
 
 return SolutionParser
