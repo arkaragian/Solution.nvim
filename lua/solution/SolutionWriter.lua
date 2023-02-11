@@ -89,6 +89,7 @@ SolutionWriter.WriteSolution = function(solution)
     lineCounter = 0
 
     WriteLine("")
+    -- TODO: Get version from the WriterSettings
     WriteLine("Microsoft Visual Studio Solution File, Format Version 12.00")
     WriteLine("# Visual Studio Version 17")
     WriteLine("VisualStudioVersion = " .. solution.VisualStudioVersion)
