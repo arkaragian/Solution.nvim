@@ -145,20 +145,33 @@ solution.CompileByFilename = function(filename, options)
     CompileOutputWindow.AddLine("Command: ".. command)
     CompileOutputWindow.AddLine("")
 
+    local ErrorHighlight = {
+        hl_group = "Error",
+    }
 
-    local function on_event(job_id, data, event)
-        -- Make the lsp shutup.
-        _ = job_id
+    local WarningHighlight = {
+        hl_group = "WarningMsg",
+    }
+
+
+
+    local function on_event(_, data, event)
         -- While the job is running , it may write to stdout and stderr
         -- Here we handle when we write to stdout
         if event == "stdout" or event == "stderr" then
             -- If we have data, then append them to the lines array
             if data then
                 for _,theLine in ipairs(data) do
-                    CompileOutputWindow.AddLine(theLine,SolutionConfig.display.removeCR)
+                    local r = Parser.ParseLine(theLine)
+                    if (r ~= nil and r.type == 'E') then
+                        CompileOutputWindow.AddLine(theLine,SolutionConfig.display.removeCR,ErrorHighlight)
+                    elseif (r ~= nil and r.type == 'W') then
+                        CompileOutputWindow.AddLine(theLine,SolutionConfig.display.removeCR,WarningHighlight)
+                    else
+                        CompileOutputWindow.AddLine(theLine,SolutionConfig.display.removeCR)
+                    end
                     if not stringLines[theLine] then
                         stringLines[theLine] = true
-                        local r = Parser.ParseLine(theLine)
                         if r then
                             counter = counter + 1
                             if (r.type == 'E') then
@@ -402,8 +415,8 @@ solution.PerformCommand = function(command,options)
     end
 end
 
-solution.Compile= function(options)
-    solution.PerformCommand("build", options)
+solution.Compile = function()
+    solution.PerformCommand("build", SolutionConfig)
 end
 
 solution.Clean= function(options)

@@ -190,7 +190,7 @@ function Window.new (Title)
     --- Adds a line to the current window.
     --@param line The line to display
     --@param removeCR A boolean option that indicates if a trailing CR should be removed.
-    function self.AddLine(line,removeCR)
+    function self.AddLine(line,removeCR,highlight)
         if not line then
             return
         end
@@ -224,6 +224,10 @@ function Window.new (Title)
         vim.api.nvim_win_set_cursor(self.WindowHandle, {nuLines, 0})
         --Make buffer not modifiable again
         vim.api.nvim_buf_set_option(self.BufferNumber, 'modifiable', false)
+
+        if(highlight ~= nil) then
+            vim.api.nvim_buf_add_highlight(self.BufferNumber,-1, highlight.hl_group, nuLines, 0, -1)
+        end
 
     end
 
