@@ -58,11 +58,9 @@ local function WriteSolutionConfigurationPlatforms(solution)
 --	EndGlobalSection
     WriteLine("\tGlobalSection(SolutionConfigurationPlatforms) = preSolution")
     -- TODO: Find a way to do it in order to be reproducible
-    for k,v in pairs(solution.SolutionConfigurations) do
-        for k2,v2 in pairs(v) do
-            local line = string.format("\t\t%s|%s = %s|%s",k,v2,k,v2)
-            WriteLine(line)
-        end
+    for _,v in pairs(solution.SolutionConfigurations) do
+        local line = string.format("\t\t%s|%s = %s|%s",v[1],v[2],v[1],v[2])
+        WriteLine(line)
     end
     WriteLine("\tEndGlobalSection")
 end
@@ -72,8 +70,8 @@ local function WriteProjectConfigurations(ProjectConfigurations)
     for k,v in ipairs(ProjectConfigurations) do
     --  {6185CC21-BE89-448A-B3C0-D1C27112E595}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
     --  {6185CC21-BE89-448A-B3C0-D1C27112E595}.Debug|Any CPU.Build.0 = Debug|Any CPU
-        local line1 = string.format("\t\t{%s}.%s|%s.ActiveCfg = %s|%s",v.ProjectGUID,v.Configuration,v.Platform,v.Configuration,v.Platform)
-        local line2 = string.format("\t\t{%s}.%s|%s.Build.0 = %s|%s",v.ProjectGUID,v.Configuration,v.Platform,v.Configuration,v.Platform)
+        local line1 = string.format("\t\t{%s}.%s|%s.ActiveCfg = %s|%s",v.ProjectGUID,v.SolutionConfiguration,v.SolutionPlatform,v.ProjectConfiguration,v.ProjectPlatform)
+        local line2 = string.format("\t\t{%s}.%s|%s.Build.0 = %s|%s",v.ProjectGUID,v.SolutionConfiguration,v.SolutionPlatform,v.ProjectConfiguration,v.ProjectPlatform)
         WriteLine(line1)
         WriteLine(line2)
     end

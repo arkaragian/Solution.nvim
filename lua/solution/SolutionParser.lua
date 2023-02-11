@@ -250,12 +250,14 @@ local function ProcessRawProjectConfigurations(projects,solConfigs,rawConfigurat
 
     local ProjectConfigurations = {
     }
-    for i,project in ipairs(projects) do
-        for key,solConf in pairs(solConfigs) do
-            for _, platformValue in pairs(solConf) do
+    for _,project in ipairs(projects) do
+        for _,v in pairs(solConfigs) do
+            local configuration = v[1]
+            local platformValue = v[2]
+            --for _, platformValue in pairs(solConf) do
                 -- The "ActiveCfg" entry defines the active project configuration in the given solution configuration
                 -- This entry must be present for every possible solution configuration/project combination.
-                local fullConfig = key .."|".. platformValue
+                local fullConfig = configuration .."|".. platformValue
                 local entryNameActiveConfig = string.format("{%s}.%s.ActiveCfg",project["GUID"], fullConfig);
                 -- The "Build.0" entry tells us whether to build the project configuration in the given solution configuration.
                 -- Technically, it specifies a configuration name of its own which seems to be a remnant of an initial, 
@@ -263,19 +265,25 @@ local function ProcessRawProjectConfigurations(projects,solConfigs,rawConfigurat
                 -- The configuration name is not used, and the whole entry means "build the project configuration" 
                 -- if it's present in the solution file, and "don't build" if it's not.
                 -- TODO: See how to use this. Maybe have additional field that indicates if the project will be built?
-                local entryNameBuild = string.format("{%s}.%s.Build.0",project["GUID"], fullConfig);
+                -- local entryNameBuild = string.format("{%s}.%s.Build.0",project["GUID"], fullConfig);
                 --print(entryNameBuild)
                 if rawConfigurations[entryNameActiveConfig] then
+                    local pConfig = rawConfigurations[entryNameActiveConfig]
+                    local i,_ = string.find(pConfig,"|")
+                    local projectConfigration = string.sub(pConfig,1,i-1)
+                    local projectPlatform = string.sub(pConfig,i+1,string.len(pConfig))
                     --print("Adding configuration")
                     local projectConfiguration = {
                         ProjectName = project["Name"],
                         ProjectGUID = project["GUID"],
-                        Configuration = key,
-                        Platform = platformValue,
+                        SolutionConfiguration = configuration,
+                        SolutionPlatform = platformValue,
+                        ProjectConfiguration = projectConfigration,
+                        ProjectPlatform = projectPlatform,
                     }
                     table.insert(ProjectConfigurations,projectConfiguration)
                 end
-            end
+            --end
         end
     end
     return ProjectConfigurations
@@ -336,6 +344,8 @@ local function ParseSolutionConfigurations(fileHandle,startPosition, lineCounter
     local SolutionConfigurations = {
     }
     lineCounter = lineCounter -1
+
+    local configurationIndex = 1
     repeat
         local line = fileHandle:read()
 
@@ -380,10 +390,12 @@ local function ParseSolutionConfigurations(fileHandle,startPosition, lineCounter
             local plat   = string.sub(beforeEqual,i+1,string.len(beforeEqual))
             --TODO: Maybe refactor this part and keep the order of addition
             -- This is important for solution writer
-            if not SolutionConfigurations[config] then
-                SolutionConfigurations[config] = {}
-            end
-            table.insert(SolutionConfigurations[config],plat)
+            SolutionConfigurations[configurationIndex] = { config, plat }
+            configurationIndex = configurationIndex + 1
+            --if not SolutionConfigurations[config] then
+            --    SolutionConfigurations[config] = {}
+            --end
+            --table.insert(SolutionConfigurations[config],plat)
         end
         ::continue::
     until(false)
