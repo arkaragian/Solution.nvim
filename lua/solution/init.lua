@@ -38,16 +38,10 @@ local SolutionConfig = {
     -- select indicates to ask to selection of there are multiple files found
     ProjectSelectionPolicy = "first",
     BuildConfiguration = "Debug",
-    arch = "x86",
     display = { -- Controls options for popup windows.
         removeCR = true,
         HideCompilationWarnings = true
     },
-    WriterSettings = {
-        FormatVersion = "12.00",
-        VisualStudioVersion = "17.3.32819.101",
-        MinimumVisualStudioVersion = "10.0.40219.1"
-    }
 }
 
 --- Define user options for the plugin configuration
