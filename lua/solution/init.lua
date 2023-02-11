@@ -6,8 +6,13 @@ local solution = {}
 local Path = require("solution.path")
 local Parser = require("solution.parser")
 local win = require("solution.window")
+local SolutionParser = require("solution.SolutionParser")
 
+------------------------------------------------------------------------------
+--                    P R I V A T E  M E M B E R S                          --
+------------------------------------------------------------------------------
 
+-- File filename of the solution that is been parsed.
 local filenameSLN = nil
 
 -- The test name that will be executed
@@ -15,6 +20,9 @@ local TestFunctionName = nil
 
 -- The project file that contains the test.
 local TestProject = nil
+
+-- The current in memory solution
+local InMemorySolution = nil
 
 --Could be used to configure the parser.
 --local CompilerVersion = nil
@@ -34,12 +42,19 @@ local SolutionConfig = {
     display = { -- Controls options for popup windows.
         removeCR = true,
         HideCompilationWarnings = true
+    },
+    WriterSettings = {
+        FormatVersion = "12.00",
+        VisualStudioVersion = "17.3.32819.101",
+        MinimumVisualStudioVersion = "10.0.40219.1"
     }
 }
 
+--- Define user options for the plugin configuration
+-- @param config The user options configuraton object
 solution.setup = function(config)
     if (config == nil) then
-        -- No configuration use default options
+        -- No configuration use default options that have already been predefined.
         print("No configuration")
         return
     else
@@ -50,33 +65,36 @@ solution.setup = function(config)
     vim.api.nvim_create_user_command("HelloSolution",'echo \"Hello Solution\"',{})
 end
 
+--- Prompts the user to select the configuration that will be used for the project.
 solution.SelectConfiguration = function()
-
-    print("Selecting Platform")
-    -- TODO: Get the solution item here and extract all the platforms.
-    local sol = require("solution.SolutionParser").ParseSolution("C:/users/Admin/source/repos/AIStream/AIStream.sln")
-
+    if(InMemorySolution == nil) then
+        -- Try to find a solution. Maybe there is no solution is loaded.
+        solution.FindAndLoadSolution()
+        if(InMemorySolution == nil) then
+            print("No solution found!")
+            return
+        end
+    end
 
     local items = {
     }
 
-
-    for k,_ in pairs(sol.SolutionConfigurations) do
+    for k,_ in pairs(InMemorySolution.SolutionConfigurations) do
         table.insert(items,k)
     end
 
     local opts = {
-        prompt = "Select Build Configuration:"
+        prompt = string.format("Select Build Configuration [%s]:",InMemorySolution.SolutionPath)
     }
-    vim.ui.select(items,opts,solution.SetArchitecture)
+    vim.ui.select(items,opts,solution.SetConfiguration)
 end
 
-solution.SetArchitecture = function(item,index)
+solution.SetConfiguration = function(item,index)
     if not item then
         return
     end
     _ = index
-    SolutionConfig.arch = item
+    SolutionConfig.BuildConfiguration = item
 end
 
 solution.SelectWaringDisplay = function()
@@ -89,7 +107,7 @@ solution.SelectWaringDisplay = function()
     local opts = {
         prompt = "When compiling:"
     }
-    vim.ui.select(items,opts,solution.SetArchitecture)
+    vim.ui.select(items,opts,solution.SetConfiguration)
 end
 
 solution.SetWarningDisplay = function(item,index)
@@ -179,7 +197,7 @@ solution.CompileByFilename = function(filename, options)
     end
 
     -- https://phelipetls.github.io/posts/async-make-in-nvim-with-lua/
-    local id = vim.fn.jobstart(command,{
+    local _ = vim.fn.jobstart(command,{
         on_stderr = on_event,
         on_stdout = on_event,
         on_exit = on_event,
@@ -219,7 +237,7 @@ solution.CleanByFilename = function(filename)
     end
 
     -- https://phelipetls.github.io/posts/async-make-in-nvim-with-lua/
-    local id = vim.fn.jobstart(command,{
+    local _ = vim.fn.jobstart(command,{
         on_stderr = on_event,
         on_stdout = on_event,
         on_exit = on_event,
@@ -234,9 +252,7 @@ solution.TestByFilename = function(filename)
     local window = win.new("Testing..")
     window.PaintWindow()
 
-    local function on_event(job_id, data, event)
-        -- Make the lsp shutup.
-        _ = job_id
+    local function on_event(_, data, event)
         -- While the job is running , it may write to stdout and stderr
         -- Here we handle when we write to stdout
         if event == "stdout" or event == "stderr" then
@@ -257,7 +273,7 @@ solution.TestByFilename = function(filename)
     end
 
     -- https://phelipetls.github.io/posts/async-make-in-nvim-with-lua/
-    local id = vim.fn.jobstart(command,{
+    local _ = vim.fn.jobstart(command,{
         on_stderr = on_event,
         on_stdout = on_event,
         on_exit = on_event,
@@ -272,7 +288,8 @@ solution.GetCompilerVersion = function()
 
     local count = 0
 
-    local function HandleData(job_id, data, event)
+    -- Inputs are -> job_id, data, event
+    local function HandleData(_, data, _)
         -- Handle Data Written to stdout
         count = count+1
         if data then
@@ -280,7 +297,7 @@ solution.GetCompilerVersion = function()
         end
     end
 
-    local id = vim.fn.jobstart(command,{
+    local _ = vim.fn.jobstart(command,{
         on_stdout = HandleData,
         stdout_buffered = true,
         stderr_buffered = true,
@@ -316,10 +333,14 @@ solution.AskForSelection = function(options)
     vim.ui.select(ProjectOrSolution,SelectionOptions,OnSelection)
 end
 
+--- Locates the .sln where the file that is currently edited belong to and loads
+-- is into memory. This is private member and we reserve the right to change it
+-- any time.
+-- @param options The plugin configuration options
+solution.FindAndLoadSolution = function(options)
 
-solution.PerformCommand = function(command,options)
-    -- Reset the filename
-    filenameSLN = nil
+    local filename = nil
+    -- If no options are provided use the default options.
     if not options then
         options = SolutionConfig
     end
@@ -328,15 +349,15 @@ solution.PerformCommand = function(command,options)
         -- Do not select file. Find the first applicable file.
         local slnFile = Path.FindUpstreamFilesByExtension(".sln")
         if(slnFile[1] == nil ) then
-            print("No solution file found")
+            -- No solution file found. Try to fall back to a csproj
             slnFile = Path.FindUpstreamFilesByExtension(".csproj")
             if(slnFile[1] == nil ) then
-                return
+                return 1
             else
-                filenameSLN = slnFile[1]
+                filename = slnFile[1]
             end
         else
-            filenameSLN = slnFile[1]
+            filename = slnFile[1]
         end
     elseif (options.ProjectSelectionPolicy == "select") then
         -- Select file
@@ -346,6 +367,20 @@ solution.PerformCommand = function(command,options)
         return
     end
 
+    if not filename then
+        print("No project or solution detected. Returning.")
+        return 2
+    end
+    -- Parse solution
+    InMemorySolution = SolutionParser.ParseSolution(filename)
+    if (InMemorySolution ~= nil) then
+        filenameSLN = filename
+    end
+end
+
+solution.PerformCommand = function(command,options)
+    -- This wil popoulate the filenameSLN value
+    solution.FindAndLoadSolution(options)
     if not filenameSLN then
         print("No project or solution detected. Returning.")
         return
@@ -419,14 +454,26 @@ solution.ClearTest = function()
     TestProject = nil
 end
 
+--- Clears the test that will be invoked by the TestSelected method.
+solution.WriteSolution= function()
+    local p = require("solution.SolutionParser")
+    local s = p.ParseSolution("C:/users/Admin/source/repos/MVEnc/MVEnc.sln")
+
+    local p = require("solution.SolutionWriter").WriteSolution(s)
+end
+
 
 solution.FunctionTest = function()
-    --local p = require("solution.SolutionParser")
+    local p = require("solution.SolutionParser")
     --print("Hello")
     --p.ParseSolution("C:/users/Admin/source/repos/AIStream/AIStream.sln")
-    --p.ParseSolution("C:/users/Admin/source/repos/AIStream/AIStream.sln")
-    local p = require("solution.ProjectParser")
-    p.GetBinaryOutput("C:/users/Admin/source/repos/AIStream/AIStream.sln")
+    --local s = p.ParseSolution("C:/users/Admin/source/repos/AIStream/AIStream.sln")
+    local s = p.ParseSolution("C:/users/Admin/source/repos/MVEnc/MVEnc.sln")
+    p.DisplaySolution(s)
+    --local p = require("solution.ProjectParser")
+    --p.GetBinaryOutput("C:/users/Admin/source/repos/AIStream/AIStream.sln")
 end
+
+
 
 return solution
