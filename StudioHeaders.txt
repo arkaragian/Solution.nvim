@@ -1,0 +1,60 @@
+== Visual Studio .NET 2003 (DO NOT COPY THIS LINE) ==
+Microsoft Visual Studio Solution File, Format Version 8.00
+# Visual Studio .NET 2003
+VisualStudioVersion = 7.1
+
+
+== Visual Studio 2005 (DO NOT COPY THIS LINE) ==
+Microsoft Visual Studio Solution File, Format Version 9.00
+# Visual Studio 2005
+VisualStudioVersion = 8.0
+
+
+== Visual Studio 2008 (DO NOT COPY THIS LINE) ==
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual Studio 2008
+VisualStudioVersion = 9.0
+
+== Visual Studio 2010 (DO NOT COPY THIS LINE) ==
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+
+
+== Visual Studio 2012 (DO NOT COPY THIS LINE) ==
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+
+
+== Visual Studio 2013 (DO NOT COPY THIS LINE) ==
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.31101.0
+MinimumVisualStudioVersion = 10.0.40219.1
+
+
+== Visual Studio 2015 (DO NOT COPY THIS LINE) ==
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.23107.0
+MinimumVisualStudioVersion = 10.0.40219.1
+
+
+== Visual Studio 2017 (DO NOT COPY THIS LINE) ==
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.26430.4
+MinimumVisualStudioVersion = 10.0.40219.1
+
+
+== Visual Studio 2019 (DO NOT COPY THIS LINE) ==
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.28701.123
+MinimumVisualStudioVersion = 10.0.40219.1
+
+
+== Visual Studio 2022 (DO NOT COPY THIS LINE) ==
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.1.32210.238
+MinimumVisualStudioVersion = 10.0.40219.1
