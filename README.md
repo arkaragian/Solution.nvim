@@ -48,6 +48,7 @@ The plugin is still in early alpha stage and the design will be breaking frequen
 ## Implemented Features
 - [x] Automatic `.sln` and `.csproj` detection within the filesystem.
 - [x] Quick fix list implementation from compilation output.
+    - [x] Color compilation output
 - [x] Solution file parsing
 - [x] Project file parsing
     - [x] xml parser implementation (use the xml2lua parser)
@@ -72,10 +73,10 @@ Currently the project files are parsed useing xml2lua.
 ## Ideas for future implementation
 Below are listed ideas of what the plugin could do. Not in order of priority.
 - [ ] Support for executing the project inside nvim
-- [ ] Persistent project settings (Remember past projects that have been compiled)
 - [ ] Async Compile. (maybe immplement using libuv)
-- [ ] Add support for unit tests execution
-- [ ] Single test execution to support test driven development
+- [ ] Implement a Unit test explorer
+    - [ ] Add support for unit tests execution
+    - [ ] Single test execution to support test driven development
 - [ ] Add support for project exclusion
 - [ ] Persistent between project settings (using lua `vim.fn.stdpath("cache") .. "/Solution.nvim",` 
 - [ ] Integration with dap modules for easier discovery of programs.
