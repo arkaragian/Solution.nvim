@@ -73,8 +73,17 @@ solution.SelectConfiguration = function()
     local items = {
     }
 
-    for k,_ in pairs(InMemorySolution.SolutionConfigurations) do
-        table.insert(items,k)
+    local hash = {
+    }
+
+    for _,v in ipairs(InMemorySolution.SolutionConfigurations) do
+        -- We may have the same configuration with mulitple platforms
+        -- We only keep the unique values using the hash table but we also
+        -- print them in order or declaration
+        if(not hash[v[1]]) then
+            hash[v[1]] = true
+            table.insert(items,v[1])
+        end
     end
 
     local opts = {
