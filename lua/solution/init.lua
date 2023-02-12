@@ -101,8 +101,6 @@ solution.SetConfiguration = function(item,index)
 end
 
 solution.SelectWaringDisplay = function()
-    -- TODO make sure to have all the dotnet provided architectures.
-    -- Or make this user configurable?
     local items = {
         "Show Warnings",
         "Hide Warnings",
