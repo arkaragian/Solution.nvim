@@ -152,6 +152,47 @@ Path.GetFilesByExtension = function(directory,extension)
     return filesList
 end
 
+--- Gets all the directories in the given directory
+-- @param dir The directory to list 
+Path.Directories = function(directory)
+
+    local command
+    local isWin = (os.system() == "windows")
+    local sep = os.seperator()
+    if(isWin) then
+        -- The CMD command is: dir /b /ad <path>
+        -- List in bare format (name only)
+        -- List only items with the directory attribute
+        -- If there is no directory the following two will be returned
+        -- .  (Current)
+        -- .. (Parrent)
+        command = 'dir /b /ad "' .. directory .. '"'
+    else
+        -- This will list the files and directories. But the directories appended with "/"
+        command = 'ls -1p ' .. directory
+    end
+
+    local filesList = {}
+    local index = 1
+    -- search for files in the directory that have the given extension
+    for file in io.popen(command):lines() do
+        if(isWin) then
+            if (file == "." or file == "..") then
+                goto wincontinue
+            end
+
+            filesList[index] = file
+            index = index + 1
+
+            ::wincontinue::
+        else
+            filesList[index] = file
+            index = index + 1
+        end
+    end
+    return filesList
+end
+
 --- Find the given filename starting from cwd and moving upwards
 -- @param filename The filename to look for
 Path.FindFile = function(filename)
