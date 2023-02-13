@@ -56,7 +56,9 @@ solution.setup = function(config)
     end
     solution.GetCompilerVersion()
 
-    vim.api.nvim_create_user_command("HelloSolution",'echo \"Hello Solution\"',{})
+    vim.api.nvim_create_user_command("HelloSolution"   , 'echo \"Hello Solution\"'                                   , {desc = "Displays a greeting message"  } )
+    vim.api.nvim_create_user_command("LoadSolution"    , function() solution.FindAndLoadSolution(SolutionConfig) end , {desc = "Loads a solution in memory"   } )
+    vim.api.nvim_create_user_command("DisplaySolution" , SolutionParser.DisplaySolution                              , {desc = "Displays the loaded solution" } )
 end
 
 --- Prompts the user to select the configuration that will be used for the project.
