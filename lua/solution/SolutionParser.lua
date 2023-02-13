@@ -595,8 +595,14 @@ end
 SolutionParser.DisplaySolution = function(theSolution)
     local win = require("solution.window")
 
+    if(theSolution == nil) then
+        print("Solution for display is nil. Doing nothing")
+        return
+    end
+
     local window = win.new(" " .. theSolution.SolutionPath .. " ")
     window.PaintWindow()
+    window.SetFiletype("lua")
 
     local str = vim.inspect(theSolution)
 
