@@ -1,4 +1,5 @@
 --See https://paulwatt526.github.io/wattageTileEngineDocs/luaOopPrimer.html
+--See https://www.2n.pl/blog/how-to-write-neovim-plugins-in-lua
 
 local Window = {}
 
@@ -97,6 +98,10 @@ function Window.new (Title)
 
     function self.Close()
         Window.CloseWindow(self)
+    end
+
+    function self.SetFiletype(ft)
+        vim.api.nvim_buf_set_option(self.BufferNumber,"filetype",ft)
     end
 
     function self.PaintWindow()
