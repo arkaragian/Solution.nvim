@@ -307,7 +307,6 @@ local function ParseNestedProjects(fileHandle,startPosition)
     repeat
         local line = fileHandle:read()
         if(line == nil) then
-            print("No more lines to read. Exiting..")
             break
         end
 
@@ -502,7 +501,7 @@ end
 SolutionParser.ParseSolution = function(filename)
     local ext = path.GetFileExtension(filename)
     if (ext ~= ".sln") then
-        print("File extension is not sln but ".. ext)
+        vim.notify("File extension is not sln but ".. ext,vim.log.levels.ERROR,{title = "Solution.nvim"})
         return
     end
 
@@ -522,6 +521,7 @@ SolutionParser.ParseSolution = function(filename)
     local file = io.open(filename,"r")
     if(file == nil) then
         print("Could not open file")
+        vim.notify("Could not open file: ".. filename,vim.log.levels.ERROR,{title = "Solution.nvim"})
         return
     end
     -- At some points we need to rewind thus we need to remember our positions
@@ -531,7 +531,6 @@ SolutionParser.ParseSolution = function(filename)
     while(true) do
         local line = file:read()
         if(line == nil) then
-            print("No more lines to read. Exiting..")
             break
         end
         lineCounter = lineCounter + 1
@@ -596,7 +595,7 @@ SolutionParser.DisplaySolution = function(theSolution)
     local win = require("solution.window")
 
     if(theSolution == nil) then
-        print("Solution for display is nil. Doing nothing")
+        vim.notify("No solution loaded, nothing to display",vim.log.levels.WARN,{title = "Solution.nvim"})
         return
     end
 

@@ -391,6 +391,7 @@ solution.FindAndLoadSolution = function(options)
     InMemorySolution = SolutionParser.ParseSolution(filename)
     if (InMemorySolution ~= nil) then
         filenameSLN = filename
+        vim.notify("Loaded "..filename,vim.log.levels.INFO, {title="Solution.nvim"})
     end
 end
 
