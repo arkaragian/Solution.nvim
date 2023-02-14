@@ -179,7 +179,6 @@ solution.CompileByFilename = function(filename, options)
         --command = command .. " -a " .. options.arch
         _ = 5
     end
-    command = command .. " -v q"
 
     -- The items to be displayed
     local items = {}
