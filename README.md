@@ -26,6 +26,7 @@ local SolutionConfig = {
     -- select indicates to ask to selection of there are multiple files found
     ProjectSelectionPolicy = "first",
     BuildConfiguration = "Debug",
+    BuildPlatform = "Any CPU",
     display = { -- Controls options for popup windows.
         removeCR = true,
         HideCompilationWarnings = true
@@ -41,6 +42,13 @@ been detected. valid values are `first` and `select`
 `BuildConfiguration`: defines the default build configuration for the solution
 
 ## Usage
+The following commands are defined by the plugin:
+1. `LoadSolution`: Locates and loads a solution file in memory
+1. `DisplaySolution`: Displays the solution that is loaded in memory
+1. `SelectConfiguration`: Select a build configuration from the available build configurations
+1. `SelectPlatform`: Selects a build platform from the available build platforms
+1. `SelectWarningDisplay`: Selects if the compilation warnings will be displayed to thq QuickFix window
+
 
 ## Current State
 The plugin is still in early alpha stage and the design will be breaking frequently.

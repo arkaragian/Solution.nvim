@@ -38,6 +38,7 @@ local SolutionConfig = {
     -- select indicates to ask to selection of there are multiple files found
     ProjectSelectionPolicy = "first",
     BuildConfiguration = "Debug",
+    BuildPlatform = "Any CPU",
     display = { -- Controls options for popup windows.
         removeCR = true,
         HideCompilationWarnings = true
@@ -56,9 +57,12 @@ solution.setup = function(config)
     end
     solution.GetCompilerVersion()
 
-    vim.api.nvim_create_user_command("HelloSolution"   , 'echo \"Hello Solution\"'                                   , {desc = "Displays a greeting message"  } )
-    vim.api.nvim_create_user_command("LoadSolution"    , function() solution.FindAndLoadSolution(SolutionConfig) end , {desc = "Loads a solution in memory"   } )
-    vim.api.nvim_create_user_command("DisplaySolution" , SolutionParser.DisplaySolution                              , {desc = "Displays the loaded solution" } )
+    vim.api.nvim_create_user_command("HelloSolution"       , 'echo \"Hello Solution\"'                                       , {desc = "Displays a greeting message"                } )
+    vim.api.nvim_create_user_command("LoadSolution"        , function() solution.FindAndLoadSolution(SolutionConfig) end     , {desc = "Loads a solution in memory"                 } )
+    vim.api.nvim_create_user_command("DisplaySolution"     , function() SolutionParser.DisplaySolution(InMemorySolution) end , {desc = "Displays the loaded solution"               } )
+    vim.api.nvim_create_user_command("SelectConfiguration" , solution.SelectConfiguration                                    , {desc = "Select Active Build Configuration"          } )
+    vim.api.nvim_create_user_command("SelectPlatform"      , solution.SelectPlatform                                         , {desc = "Select Active Build Platform"               } )
+    vim.api.nvim_create_user_command("SelectWaringDisplay" , solution.SelectWaringDisplay                                    , {desc = "Select if compilation warnings are visible" } )
 end
 
 --- Prompts the user to select the configuration that will be used for the project.
@@ -100,6 +104,48 @@ solution.SetConfiguration = function(item,index)
     end
     _ = index
     SolutionConfig.BuildConfiguration = item
+end
+
+solution.SelectPlatform = function()
+    if(InMemorySolution == nil) then
+        -- Try to find a solution. Maybe there is no solution is loaded.
+        solution.FindAndLoadSolution()
+        if(InMemorySolution == nil) then
+            vim.notify("No solution found.",vim.log.levels.WARN, {title="Solution.nvim"})
+            return
+        end
+    end
+
+    local items = {
+    }
+
+    local hash = {
+    }
+
+    for _,v in ipairs(InMemorySolution.SolutionConfigurations) do
+        -- We may have the same configuration with mulitple platforms
+        -- We only keep the unique values using the hash table but we also
+        -- print them in order or declaration
+        if(v[1] == SolutionConfig.BuildConfiguration) then
+            if(not hash[v[2]]) then
+                hash[v[2]] = true
+                table.insert(items,v[2])
+            end
+        end
+    end
+
+    local opts = {
+        prompt = string.format("Select Platform for [%s] Configuration [%s]:",InMemorySolution.SolutionPath,SolutionConfig.BuildConfiguration)
+    }
+    vim.ui.select(items,opts,solution.SetConfiguration)
+end
+
+solution.SetPlatform = function(item,index)
+    if not item then
+        return
+    end
+    _ = index
+    SolutionConfig.BuildPlatform = item
 end
 
 solution.SelectWaringDisplay = function()
