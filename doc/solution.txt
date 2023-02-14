@@ -1,0 +1,37 @@
+================================================================================
+INTRODUCTION                                             *solution* *solution.nvim*
+
+        ####   ####  #      #    #  #####  #   ####  #     # 
+       #      #    # #      #    #    #    #  #    # ##    # 
+       #      #    # #      #    #    #    #  #    # # #   # 
+        ####  #    # #      #    #    #    #  #    # #  #  # 
+            # #    # #      #    #    #    #  #    # #   # # 
+            # #    # #      #    #    #    #  #    # #    ## 
+        ####   ####  #####   ####     #    #   ####  #     # 
+       
+                #     #  #      #  #######  #     #
+                ##    #   #    #      #     ##   ##
+                # #   #   #    #      #     # # # #
+                #  #  #    #  #       #     #  #  #
+                #   # #    #  #       #     #     #
+                #    ##     ##        #     #     #
+                #     #     ##     #######  #     #                              
+
+1. Introduction                                          |solution-intro|
+2. Setup                                                 |solution-setup|
+
+
+================================================================================
+INTRODUCTION                                                   *solution-intro*
+
+Solution.nvim is a plugin that adds support to neovim for Visual Studio .sln
+files. The goal of the this plugin is to enable various IDE workflows that are
+normally performed in visual Studio however they are quite cumbersome to quickly
+perform through oter means.
+
+================================================================================
+solution.setup({opts})                                       *solution.setup()*
+
+Performs the initial setup of the plugin.
+
+ vim:tw=78:ts=8:ft=help:norl:
