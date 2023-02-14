@@ -65,6 +65,7 @@ The plugin is still in early alpha stage and the design will be breaking frequen
 - [x] Unit test discovery
 - [x] Ability to display the solution or the project that is loaded in memory.
 - [x] Ability to write solution files
+- [x] Automatic executable output discovery for DAP debugging.
 
 ## Solution `.sln` support
 Currently the plugin can parse(for the most part) the solution files. Based on
