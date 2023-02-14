@@ -7,9 +7,20 @@
 local Parser = {}
 
 local os = require("solution.osutils")
+local utils = require("solution.utils")
 
 
-Parser.GetFileExtension = function(filename)
+Parser.ParseOutputDirectory = function(line,OutputTable)
+    local i,j = string.find(line,"->")
+    if(i ~= nil and j~= nil) then
+        local project = string.sub(line,1,i-1)
+        local output = string.sub(line,j+1,string.len(line))
+        -- TODO: Trim
+        local entry = {utils.StringTrimWhiteSpace(project),utils.StringTrimWhiteSpace(output)}
+        local index = #OutputTable + 1
+        OutputTable[index] = entry
+    end
+    return OutputTable
 end
 
 --- Indicates if a line should be added to the quickfix list

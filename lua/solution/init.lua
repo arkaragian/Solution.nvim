@@ -24,6 +24,8 @@ local TestProject = nil
 -- The current in memory solution
 local InMemorySolution = nil
 
+local OutputLocations = nil
+
 --Could be used to configure the parser.
 --local CompilerVersion = nil
 
@@ -171,6 +173,10 @@ solution.SetWarningDisplay = function(item,index)
     end
 end
 
+solution.GetOutputLocations = function()
+    return OutputLocations
+end
+
 solution.CompileByFilename = function(filename, options)
     -- dotnet build [<PROJECT | SOLUTION>...] [options]
     local command = "dotnet build " .. filename .. " -c " .. options.BuildConfiguration
@@ -193,6 +199,8 @@ solution.CompileByFilename = function(filename, options)
     local errors = 0
     local warnings = 0
 
+    OutputLocations = nil
+
 
     local CompileOutputWindow = win.new(" Compiling " .. filename .. " ")
     CompileOutputWindow.PaintWindow()
@@ -208,6 +216,7 @@ solution.CompileByFilename = function(filename, options)
     }
 
 
+    local CurrentOutputLocations = {}
 
     local function on_event(_, data, event)
         -- While the job is running , it may write to stdout and stderr
@@ -216,6 +225,7 @@ solution.CompileByFilename = function(filename, options)
             -- If we have data, then append them to the lines array
             if data then
                 for _,theLine in ipairs(data) do
+                    CurrentOutputLocations = Parser.ParseOutputDirectory(theLine,CurrentOutputLocations)
                     local r = Parser.ParseLine(theLine)
                     if (r ~= nil and r.type == 'E') then
                         CompileOutputWindow.AddLine(theLine,SolutionConfig.display.removeCR,ErrorHighlight)
@@ -254,6 +264,7 @@ solution.CompileByFilename = function(filename, options)
                 vim.cmd.copen()
                 CompileOutputWindow.BringToFront()
             end
+            OutputLocations = CurrentOutputLocations
         end
     end
 
@@ -536,6 +547,7 @@ solution.FunctionTest = function()
     --p.GetBinaryOutput("C:/users/Admin/source/repos/AIStream/AIStream.sln")
 end
 
-
+-- Let everyone else know that we have loaded
+vim.g.SolutionPluginLoaded = true
 
 return solution
