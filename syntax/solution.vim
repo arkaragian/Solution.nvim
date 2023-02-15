@@ -64,15 +64,8 @@ syn match GuidContained /\x\{8}-\x\{4}-\x\{4}-\x\{4}-\x\{12}/ contained
 "another match.
 
 syn region xString start=/"/ end=/"/
-syn match ConfigAndPlatform /=\s.*/hs=s+1 contained "thisoffset is correct
 
 
-"syn region xField start=/^/ end=/=/
-"hi def link xField Error
-
-"hi def link ConfigAndPlatform Error
-syn region SolutionConfigurationPlatformsRegion start=/GlobalSection(SolutionConfigurationPlatforms) = preSolution/ end=/EndGlobalSection/ transparent contains=ConfigAndPlatform
-hi def link SolutionConfigurationPlatformsRegion Error
 "1. When multiple Match or Region items start in the same position, the item
 "   defined last has priority.
 "2. A Keyword has priority over Match and Region items.
@@ -80,11 +73,6 @@ hi def link SolutionConfigurationPlatformsRegion Error
 "   start in later positions.
 
 
-
-
-
-"syn region ConfigAndPlatform start=/\s=/ end=/\n/ contained
-"syn region ConfigPlatformConfig start=/\s=/ end=/\|/ contained containedin=ConfigAndPlatform
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 ""                       Highligting Groups                                ""
@@ -96,6 +84,6 @@ hi def link Headers Constant
 hi def link SolutionComment Comment
 
 hi def link xString String
-hi def link StringArgument String
 
+hi def link GuidContained Constant
 hi def link GuidNotContained Constant
