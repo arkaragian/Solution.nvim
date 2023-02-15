@@ -58,6 +58,7 @@ The plugin is still in early alpha stage and the design will be breaking frequen
 - [x] Quick fix list implementation from compilation output.
     - [x] Color compilation output
 - [x] Solution file parsing
+- [x] Solution file syntax highlighting parsing
 - [x] Project file parsing
     - [x] xml parser implementation (use the xml2lua parser)
 - [x] Popup window implementation
@@ -81,12 +82,12 @@ Currently the project files are parsed useing xml2lua.
 
 ## Ideas for future implementation
 Below are listed ideas of what the plugin could do. Not in order of priority.
-- [ ] Support for executing the project inside nvim
+- [ ] Persistent between project settings (using lua `vim.fn.stdpath("cache") .. "/Solution.nvim",` 
 - [ ] Async Compile. (maybe immplement using libuv)
 - [ ] Implement a Unit test explorer
     - [ ] Add support for unit tests execution
     - [ ] Single test execution to support test driven development
 - [ ] Add support for project exclusion
-- [ ] Persistent between project settings (using lua `vim.fn.stdpath("cache") .. "/Solution.nvim",` 
 - [ ] Integration with dap modules for easier discovery of programs.
 - [ ] Add nuget package management.
+- [ ] Support for executing the project inside nvim
