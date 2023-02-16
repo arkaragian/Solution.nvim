@@ -441,12 +441,12 @@ solution.FindAndLoadSolution = function(options)
     end
 
     if not filename then
-        print("No project or solution detected. Returning.")
         return 2
     end
-    -- Parse solution
-    InMemorySolution = SolutionParser.ParseSolution(filename)
-    if (InMemorySolution ~= nil) then
+
+    if(InMemorySolution == nil or InMemorySolution.SolutionPath ~= filename) then
+        -- Parse Solution
+        InMemorySolution = SolutionParser.ParseSolution(filename)
         filenameSLN = filename
         vim.notify("Loaded "..filename,vim.log.levels.INFO, {title="Solution.nvim"})
     end
