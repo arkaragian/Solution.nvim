@@ -12,8 +12,11 @@ local SolutionParser = require("solution.SolutionParser")
 --                    P R I V A T E  M E M B E R S                          --
 ------------------------------------------------------------------------------
 
--- File filename of the solution that is been parsed.
+-- File filename of the solution or project that is beeing parsed.
 local filenameSLN = nil
+
+-- The current in memory solution or project
+local InMemorySolution = nil
 
 -- The test name that will be executed
 local TestFunctionName = nil
@@ -21,8 +24,6 @@ local TestFunctionName = nil
 -- The project file that contains the test.
 local TestProject = nil
 
--- The current in memory solution
-local InMemorySolution = nil
 
 local OutputLocations = nil
 
@@ -126,8 +127,8 @@ solution.SelectPlatform = function()
 
     for _,v in ipairs(InMemorySolution.SolutionConfigurations) do
         -- We may have the same configuration with mulitple platforms
-        -- We only keep the unique values using the hash table but we also
-        -- print them in order or declaration
+        -- We only keep the unique values using the hash table but we
+        -- also print them in order or declaration
         if(v[1] == SolutionConfig.BuildConfiguration) then
             if(not hash[v[2]]) then
                 hash[v[2]] = true
