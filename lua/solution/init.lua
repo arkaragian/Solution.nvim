@@ -456,7 +456,7 @@ solution.PerformCommand = function(command,options)
     -- This wil popoulate the filenameSLN value
     solution.FindAndLoadSolution(options)
     if not filenameSLN then
-        print("No project or solution detected. Returning.")
+        vim.notify("No project or solution detected.",vim.log.levels.ERROR, {title="Solution.nvim"})
         return
     end
 
