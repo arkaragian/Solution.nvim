@@ -501,7 +501,6 @@ end
 SolutionParser.ParseSolution = function(filename)
     local ext = path.GetFileExtension(filename)
     if (ext ~= ".sln") then
-        vim.notify("File extension is not sln but ".. ext,vim.log.levels.ERROR,{title = "Solution.nvim"})
         return
     end
 
