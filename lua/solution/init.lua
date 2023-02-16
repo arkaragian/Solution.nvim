@@ -420,10 +420,11 @@ solution.FindAndLoadSolution = function(options)
     if(options.ProjectSelectionPolicy == "first") then
         -- Do not select file. Find the first applicable file.
         local slnFile = Path.FindUpstreamFilesByExtension(".sln")
-        if(slnFile[1] == nil ) then
+        if(slnFile == nil ) then
             -- No solution file found. Try to fall back to a csproj
+            vim.notify("No sln file located. Trying to locate csproj file.",vim.log.levels.WARN, {title="Solution.nvim"})
             slnFile = Path.FindUpstreamFilesByExtension(".csproj")
-            if(slnFile[1] == nil ) then
+            if(slnFile == nil ) then
                 return 1
             else
                 filename = slnFile[1]
