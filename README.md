@@ -2,6 +2,17 @@
 A neovim plugin that adds support for V***** S***** .sln and .csproj files.
 Written in Lua.
 
+## Showcase
+Solution Loading:
+
+https://user-images.githubusercontent.com/6718844/219972645-bd9d4ea8-0756-4611-8213-5089bbcd119c.mp4
+
+Compiling and quickfix support:
+
+https://user-images.githubusercontent.com/6718844/219972947-07137eff-7432-4cd9-90fd-a898d9af188d.mp4
+
+
+
 ## How it Works
 When opening a .cs file the plugin searches the upstream directories for any
 `.sln` or `.csproj` file and parses it.
