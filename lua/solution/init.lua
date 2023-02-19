@@ -42,8 +42,8 @@ local SolutionConfig = {
     ProjectSelectionPolicy = "first",
     BuildConfiguration = "Debug",
     BuildPlatform = "Any CPU",
-    display = { -- Controls options for popup windows.
-        removeCR = true,
+    Display = { -- Controls options for popup windows.
+        RemoveCR = true,
         HideCompilationWarnings = true
     },
 }
@@ -58,6 +58,12 @@ solution.setup = function(config)
     else
         SolutionConfig = config
     end
+
+    local r = solution.ValidateConfiguration(SolutionConfig)
+    if(not r) then
+        return;
+    end
+
     solution.GetCompilerVersion()
 
     vim.api.nvim_create_user_command("HelloSolution"       , 'echo \"Hello Solution\"'                                       , {desc = "Displays a greeting message"                } )
@@ -66,6 +72,49 @@ solution.setup = function(config)
     vim.api.nvim_create_user_command("SelectConfiguration" , solution.SelectConfiguration                                    , {desc = "Select Active Build Configuration"          } )
     vim.api.nvim_create_user_command("SelectPlatform"      , solution.SelectPlatform                                         , {desc = "Select Active Build Platform"               } )
     vim.api.nvim_create_user_command("SelectWaringDisplay" , solution.SelectWaringDisplay                                    , {desc = "Select if compilation warnings are visible" } )
+end
+
+solution.ValidateConfiguration = function(config)
+    local RequiredConfigKeys = {
+        ["ProjectSelectionPolicy"] = true,
+        ["BuildConfiguration"]     = true,
+        ["BuildPlatform"]          = true,
+        ["Display"]                = true
+    }
+
+    local RequiredDisplayKeys = {
+        ["RemoveCR"]                = true,
+        ["HideCompilationWarnings"] = true
+    }
+
+    for key, _ in pairs(RequiredConfigKeys) do
+        if(config[key] == nil) then
+            print(string.format("Key %s not found!",key))
+            return false
+        end
+    end
+    -- Validate correct values individually
+    if(config.ProjectSelectionPolicy ~= "first" and config.ProjectSelectionPolicy ~= "selection") then
+        return false
+    end
+
+    -- Build configuration may be any string
+    if(type(config.BuildConfiguration) ~= "string") then
+        return false
+    end
+
+    if(type(config.Display) ~= "table") then
+        return false
+    end
+
+    for key, _ in pairs(RequiredDisplayKeys) do
+        if(config.Display[key] == nil) then
+            print(string.format("Key Display.%s not found!",key))
+            return false
+        end
+    end
+
+    return true
 end
 
 --- Prompts the user to select the configuration that will be used for the project.
@@ -168,9 +217,9 @@ solution.SetWarningDisplay = function(item,index)
     end
     _ = index
     if(item == "Show Warnings") then
-        SolutionConfig.display.HideCompilationWarnings = false
+        SolutionConfig.Display.HideCompilationWarnings = false
     else
-        SolutionConfig.display.HideCompilationWarnings = true
+        SolutionConfig.Display.HideCompilationWarnings = true
     end
 end
 
@@ -187,7 +236,7 @@ solution.CompileByFilename = function(filename, options)
         _ = 5
     end
 
-    -- The items to be displayed
+    -- The items to be Displayed
     local items = {}
     -- Reset the quickfix list
     vim.fn.setqflist(items)
@@ -229,11 +278,11 @@ solution.CompileByFilename = function(filename, options)
                     CurrentOutputLocations = Parser.ParseOutputDirectory(theLine,CurrentOutputLocations)
                     local r = Parser.ParseLine(theLine)
                     if (r ~= nil and r.type == 'E') then
-                        CompileOutputWindow.AddLine(theLine,SolutionConfig.display.removeCR,ErrorHighlight)
+                        CompileOutputWindow.AddLine(theLine,SolutionConfig.Display.RemoveCR,ErrorHighlight)
                     elseif (r ~= nil and r.type == 'W') then
-                        CompileOutputWindow.AddLine(theLine,SolutionConfig.display.removeCR,WarningHighlight)
+                        CompileOutputWindow.AddLine(theLine,SolutionConfig.Display.RemoveCR,WarningHighlight)
                     else
-                        CompileOutputWindow.AddLine(theLine,SolutionConfig.display.removeCR)
+                        CompileOutputWindow.AddLine(theLine,SolutionConfig.Display.RemoveCR)
                     end
                     if not stringLines[theLine] then
                         stringLines[theLine] = true
@@ -245,7 +294,7 @@ solution.CompileByFilename = function(filename, options)
                                 vim.list_extend(items,{r})
                             else
                                 warnings = warnings + 1
-                                if(SolutionConfig.display.HideCompilationWarnings == false) then
+                                if(SolutionConfig.Display.HideCompilationWarnings == false) then
                                     vim.list_extend(items,{r})
                                 end
                             end
@@ -258,7 +307,7 @@ solution.CompileByFilename = function(filename, options)
         -- When the job exits, populate the quick fix list
         if event == "exit" then
             -- TODO: Add user configurable option to only open if there are errors
-            -- TODO: User configurable option to only display errors or warnings
+            -- TODO: User configurable option to only Display errors or warnings
             if (counter > 0) then
                 vim.fn.setqflist(items)
                 vim.cmd.doautocmd("QuickFixCmdPost")
@@ -296,7 +345,7 @@ solution.CleanByFilename = function(filename)
             -- If we have data, then append them to the lines array
             if data then
                 for _,theLine in ipairs(data) do
-                    window.AddLine(theLine,SolutionConfig.display.removeCR)
+                    window.AddLine(theLine,SolutionConfig.Display.RemoveCR)
                 end
             end
         end
@@ -332,7 +381,7 @@ solution.TestByFilename = function(filename)
             -- If we have data, then append them to the lines array
             if data then
                 for _,theLine in ipairs(data) do
-                    window.AddLine(theLine,SolutionConfig.display.removeCR)
+                    window.AddLine(theLine,SolutionConfig.Display.RemoveCR)
                 end
             end
         end
