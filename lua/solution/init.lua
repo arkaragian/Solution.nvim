@@ -74,6 +74,8 @@ solution.setup = function(config)
     vim.api.nvim_create_user_command("SelectWaringDisplay" , solution.SelectWaringDisplay                                    , {desc = "Select if compilation warnings are visible" } )
     vim.api.nvim_create_user_command("SelectTest"          , solution.SetTest                                                , {desc = "Select a test for debug"                    } )
     vim.api.nvim_create_user_command("ExecuteTest"         , solution.TestSelected                                           , {desc = "Select a test for debug"                    } )
+    -- Execute test in debug mode
+    vim.api.nvim_create_user_command("DebugTest"           , function() print("Not yet implemented!") end                    , {desc = "Select a test for debug"                    } )
 end
 
 solution.ValidateConfiguration = function(config)
