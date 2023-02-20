@@ -15,6 +15,8 @@ local TestListParsingState = "none"
 local PreviousLine = nil
 
 
+local win = require("solution.window")
+
 -- Parses all the output of the "dotnet test --list-tests" command. Using
 -- the PreviousLine and TestListParsingState as a state. Discard the job id.
 -- We don't need it. This method is used as an event handler.
@@ -165,20 +167,43 @@ end
 -- Executes a single test.
 TestManager.ExecuteSingleTest = function(Project,TestName)
     -- TODO: Implement this function
-    local command="dotnet test --filter Name~"..TestName
+    local command="dotnet test --filter Name~"..TestName .. " --logger=\"console;verbosity=detailed\""
     -- Make the LSP to shut up
     _ = Project
     _ = command
+    print("Executing:".. command)
 
-    local id = vim.fn.jobstart(command)
+    local CompileOutputWindow = win.new(" Executing Test: " .. TestName .. " ")
+    CompileOutputWindow.PaintWindow()
+    CompileOutputWindow.AddLine("Command: ".. command)
+    CompileOutputWindow.AddLine("")
 
-    --local id = vim.fn.jobstart(command,{
-    --    on_stderr = on_event,
-    --    on_stdout = on_event,
-    --    on_exit = on_event,
-    --    --stdout_buffered = true,
-    --    --stderr_buffered = true,
-    --})
+    local function on_event(_, data, event)
+        -- While the job is running , it may write to stdout and stderr
+        -- Here we handle when we write to stdout
+        if event == "stdout" or event == "stderr" then
+            -- If we have data, then append them to the lines array
+            if data then
+                for _,theLine in ipairs(data) do
+                    CompileOutputWindow.AddLine(theLine,SolutionConfig.Display.RemoveCR)
+                end
+            end
+        end
+
+        -- When the job exits, populate the quick fix list
+        if event == "exit" then
+            CompileOutputWindow.BringToFront()
+        end
+    end
+
+    -- https://phelipetls.github.io/posts/async-make-in-nvim-with-lua/
+    local _ = vim.fn.jobstart(command,{
+        on_stderr = on_event,
+        on_stdout = on_event,
+        on_exit = on_event,
+        --stdout_buffered = true,
+        --stderr_buffered = true,
+    })
 end
 
 return TestManager
