@@ -72,6 +72,8 @@ solution.setup = function(config)
     vim.api.nvim_create_user_command("SelectConfiguration" , solution.SelectConfiguration                                    , {desc = "Select Active Build Configuration"          } )
     vim.api.nvim_create_user_command("SelectPlatform"      , solution.SelectPlatform                                         , {desc = "Select Active Build Platform"               } )
     vim.api.nvim_create_user_command("SelectWaringDisplay" , solution.SelectWaringDisplay                                    , {desc = "Select if compilation warnings are visible" } )
+    vim.api.nvim_create_user_command("SelectTest"          , solution.SetTest                                                , {desc = "Select a test for debug"                    } )
+    vim.api.nvim_create_user_command("ExecuteTest"         , solution.TestSelected                                           , {desc = "Select a test for debug"                    } )
 end
 
 solution.ValidateConfiguration = function(config)
@@ -547,9 +549,16 @@ end
 --- Execute a single test.
 solution.TestSelected = function()
     local tm = require("solution.TestManager")
-    if(TestProject ~= nil and TestFunctionName ~= nil) then
-        tm.ExecuteSingleTest(TestProject,TestFunctionName)
+    if(TestProject == nil) then
+        vim.notify("Test project is nil noothing to execute",vim.log.levels.WARN,{title="Solution.nvim"})
+        return
     end
+
+    if(TestFunctionName == nil) then
+        vim.notify("No test function selected. Nothing to execute",vim.log.levels.WARN,{title="Solution.nvim"})
+    end
+
+    tm.ExecuteSingleTest(TestProject,TestFunctionName)
 end
 
 --- Load all the tests that are reported by dotnet
@@ -568,6 +577,8 @@ solution.SetTest = function()
         else
             TestProject = project[1]
             TestFunctionName = s
+            local msg = string.format("Selected test %s:", s)
+            vim.notify(msg, vim.log.levels.INFO, {title="Solution.nvim"})
         end
     end
 end
