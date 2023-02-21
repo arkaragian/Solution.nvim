@@ -273,6 +273,7 @@ solution.CompileByFilename = function(filename, options)
     local CurrentOutputLocations = {}
 
     local function on_event(_, data, event)
+        -- TODO: Rewrite code to remove too much nesting
         -- While the job is running , it may write to stdout and stderr
         -- Here we handle when we write to stdout
         if event == "stdout" or event == "stderr" then
@@ -291,14 +292,15 @@ solution.CompileByFilename = function(filename, options)
                     if not stringLines[theLine] then
                         stringLines[theLine] = true
                         if r then
-                            counter = counter + 1
                             if (r.type == 'E') then
                                 errors = errors + 1
+                                counter = counter + 1
                                 -- Add the line to the table
                                 vim.list_extend(items,{r})
                             else
                                 warnings = warnings + 1
                                 if(SolutionConfig.Display.HideCompilationWarnings == false) then
+                                    counter = counter + 1
                                     vim.list_extend(items,{r})
                                 end
                             end
@@ -310,13 +312,20 @@ solution.CompileByFilename = function(filename, options)
 
         -- When the job exits, populate the quick fix list
         if event == "exit" then
-            -- TODO: Add user configurable option to only open if there are errors
-            -- TODO: User configurable option to only Display errors or warnings
-            if (counter > 0) then
+            local CounterToUse = 0;
+            if(SolutionConfig.Display.HideCompilationWarnings == true) then
+                CounterToUse = errors
+            else
+                CounterToUse = counter
+            end
+
+            if (CounterToUse > 0) then
                 vim.fn.setqflist(items)
                 vim.cmd.doautocmd("QuickFixCmdPost")
                 vim.cmd.copen()
                 CompileOutputWindow.BringToFront()
+            else
+                vim.cmd.cclose()
             end
             OutputLocations = CurrentOutputLocations
         end
