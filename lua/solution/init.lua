@@ -7,6 +7,7 @@ local Path = require("solution.path")
 local Parser = require("solution.parser")
 local win = require("solution.window")
 local SolutionParser = require("solution.SolutionParser")
+local TestManager = require("solution.TestManager")
 
 ------------------------------------------------------------------------------
 --                    P R I V A T E  M E M B E R S                          --
@@ -75,7 +76,7 @@ solution.setup = function(config)
     vim.api.nvim_create_user_command("SelectTest"          , solution.SetTest                                                , {desc = "Select a test for debug"                    } )
     vim.api.nvim_create_user_command("ExecuteTest"         , solution.TestSelected                                           , {desc = "Select a test for debug"                    } )
     -- Execute test in debug mode
-    vim.api.nvim_create_user_command("DebugTest"           , function() print("Not yet implemented!") end                    , {desc = "Select a test for debug"                    } )
+    vim.api.nvim_create_user_command("DebugTest"           , function() TestManager.DebugTest(TestFunctionName) end          , {desc = "Select a test for debug"                    } )
 end
 
 solution.ValidateConfiguration = function(config)

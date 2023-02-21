@@ -206,4 +206,23 @@ TestManager.ExecuteSingleTest = function(Project,TestName)
     })
 end
 
+TestManager.DebugTest = function(TestName)
+
+    -- TODO: Implement this function
+    local command="dotnet test --filter Name~"..TestName
+
+    -- https://phelipetls.github.io/posts/async-make-in-nvim-with-lua/
+    --local _ = vim.fn.jobstart(command,{
+        --    on_stderr = on_event,
+        --    on_stdout = on_event,
+        --    on_exit = on_event,
+        --    --stdout_buffered = true,
+        --    --stderr_buffered = true,
+        --})
+
+        local dap = require("dap")
+        require("dapui").open()
+        dap.continue()
+    end
+
 return TestManager
