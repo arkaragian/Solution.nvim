@@ -213,7 +213,7 @@ solution.SelectWaringDisplay = function()
     local opts = {
         prompt = "When compiling:"
     }
-    vim.ui.select(items,opts,solution.SetConfiguration)
+    vim.ui.select(items,opts,solution.SetWarningDisplay)
 end
 
 solution.SetWarningDisplay = function(item,index)
