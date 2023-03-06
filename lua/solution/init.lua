@@ -8,6 +8,7 @@ local Parser = require("solution.parser")
 local win = require("solution.window")
 local SolutionParser = require("solution.SolutionParser")
 local TestManager = require("solution.TestManager")
+local Project = require("solution.Project")
 
 ------------------------------------------------------------------------------
 --                    P R I V A T E  M E M B E R S                          --
@@ -25,7 +26,7 @@ local TestFunctionName = nil
 -- The project file that contains the test.
 local TestProject = nil
 
-
+-- The locations of the output binaries
 local OutputLocations = nil
 
 --Could be used to configure the parser.
@@ -74,6 +75,7 @@ solution.setup = function(config)
     vim.api.nvim_create_user_command("SelectWaringDisplay" , solution.SelectWaringDisplay                                    , {desc = "Select if compilation warnings are visible" } )
     vim.api.nvim_create_user_command("SelectTest"          , solution.SetTest                                                , {desc = "Select a test for debug"                    } )
     vim.api.nvim_create_user_command("ExecuteTest"         , solution.TestSelected                                           , {desc = "Select a test for debug"                    } )
+    vim.api.nvim_create_user_command("LaunchProject"       , function() Project.LaunchProject(nil,"main")  end               , {desc = "Launch a project"                    } )
     -- Execute test in debug mode
     vim.api.nvim_create_user_command("DebugTest"           , function() TestManager.DebugTest(TestFunctionName) end          , {desc = "Select a test for debug"                    } )
 end
@@ -339,6 +341,8 @@ solution.CompileByFilename = function(filename, options)
         --stdout_buffered = true,
         --stderr_buffered = true,
     })
+
+    --TODO: Store ouptut locations to cache
 end
 
 solution.CleanByFilename = function(filename)
@@ -466,6 +470,64 @@ solution.AskForSelection = function(options)
     }
 
     vim.ui.select(ProjectOrSolution,SelectionOptions,OnSelection)
+end
+
+solution.GetCSProgram= function()
+    local csProgram = nil
+
+    local locs = OutputLocations--s.GetOutputLocations()
+    if(locs == nil) then -- TODO: Store ouput locations to cache only display this if there is actuallt nothing.
+        vim.notify("No output location detected. Requesting manual prompt",vim.log.levels.ERROR,{title="User DAP Configuration"})
+        csProgram = vim.fn.input('Path to dll: ', vim.fn.getcwd() .. '/bin/', 'file')
+    elseif(#locs > 1) then
+        -- We have more than one ouptut location. Ask the user to select one.
+        local opts = {
+            prompt = "Select Output to Debug:"
+        }
+
+        local Projects = {}
+        local maxLeftLength = 1
+        local maxRightLength = 1
+
+        -- Iterate once through the results to find the results dimensions.
+        -- We want to make the results easier to select so we need to format
+        -- them correctly
+        for _,v in ipairs(locs) do
+            maxLeftLength  = math.max(maxLeftLength,string.len(v[1]))
+            maxRightLength = math.max(maxRightLength,string.len(v[2]))
+        end
+
+        -- Generate the formated results
+        for i,v in ipairs(locs) do
+            -- Max field length is 99. Don't know why
+            local formatProvider
+            -- The right length will always be bigger than the leeft lenght
+            -- and almost always bigger than 99 characters.
+            if(maxLeftLength > 99) then
+                formatProvider = "%s ----> %s"
+            else
+                formatProvider = "%-"..maxLeftLength.."s ----> %s"
+            end
+            local s2 = string.format(formatProvider,v[1],v[2])
+            Projects[i] = s2
+        end
+
+        -- Present to the user for selection
+        vim.ui.select(Projects,opts,function(item,index)
+            if not item then
+                --return vim.fn.input('Path to dll: ', locs[1][2], 'file') -- Nothing selected set the first input
+                csProgram = locs[1][2]
+            else
+                --return vim.fn.input('Path to dll: ', locs[index][2] .. '/bin/', 'file')
+                csProgram = locs[index][2]
+            end
+        end)
+    else
+        --return vim.fn.input('Path to dll: ', locs[1][2], 'file') -- Nothing selected set the first input
+        csProgram = locs[1][2]
+    end
+
+    return csProgram
 end
 
 --- Locates the .sln where the file that is currently edited belong to and loads
