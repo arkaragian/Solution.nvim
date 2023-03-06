@@ -5,11 +5,11 @@ local path = require("solution.path")
 local os = require("solution.osutils")
 
 
-local ProjectParser = {}
+local Project = {}
 
 --- Parses the xml structure of a project
 -- @param filename The filename of the project
-ProjectParser.ParseProject = function(filename)
+Project.ParseProject = function(filename)
 
     --Uses a handler that converts the XML to a Lua table
     local xml = xml2lua.loadFile(filename)
@@ -21,19 +21,16 @@ ProjectParser.ParseProject = function(filename)
     return handler.root
 end
 
-ProjectParser.GetBinaryOutput = function(filename, configuration, platform)
-    -- asume we receive a csproj as a filename
-    local parent = path.GetParrentDirectory(filename,os.seperator())
-    -- Without extension
-    local projName = path.GetFilenameFromPath(filename, false)
 
-    -- TODO: handle debug and release
-    -- TODO: handle net6.0 net7.0
-    -- The output is the patent directory of the project /bin/configuration/platform/projectname.dll
-    --
-    local output = parent .. os.seperator() .. "bin" .. os.seperator() .. configuration .. os.seperator() .. platform .. projName .. ".dll"
-    print("Output:" .. output)
-    return output
+Project.LaunchProject = function(ProjectPath,profile)
+    local command = string.format("dotnet run --project %s --launch-profile %s",ProjectPath,profile)
+    local _ = vim.fn.jobstart(command,{
+        --on_stderr = on_event,
+        --on_stdout = on_event,
+        --on_exit = on_event,
+        --stdout_buffered = true,
+        --stderr_buffered = true,
+    })
 end
 
-return ProjectParser
+return Project
