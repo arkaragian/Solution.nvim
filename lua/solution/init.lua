@@ -70,6 +70,7 @@ solution.setup = function(config)
 
     vim.api.nvim_create_user_command("LoadSolution"        , function() solution.FindAndLoadSolution(SolutionConfig) end     , {desc = "Loads a solution in memory"                 } )
     vim.api.nvim_create_user_command("DisplaySolution"     , function() SolutionParser.DisplaySolution(InMemorySolution) end , {desc = "Displays the loaded solution"               } )
+    vim.api.nvim_create_user_command("DisplayExecutables"  , solution.DisplayOutputs                                         , {desc = "Displays the loaded solution"               } )
     vim.api.nvim_create_user_command("SelectConfiguration" , solution.SelectConfiguration                                    , {desc = "Select Active Build Configuration"          } )
     vim.api.nvim_create_user_command("SelectPlatform"      , solution.SelectPlatform                                         , {desc = "Select Active Build Platform"               } )
     vim.api.nvim_create_user_command("SelectWaringDisplay" , solution.SelectWaringDisplay                                    , {desc = "Select if compilation warnings are visible" } )
@@ -146,7 +147,6 @@ solution.SelectConfiguration = function()
         -- print them in order or declaration
         if(not hash[v[1]]) then
             hash[v[1]] = true
-            table.insert(items,v[1])
         end
     end
 
@@ -330,6 +330,24 @@ solution.CompileByFilename = function(filename, options)
                 vim.cmd.cclose()
             end
             OutputLocations = CurrentOutputLocations
+            -- TODO: Store ouput locations to cache
+            local solutionName = Path.GetFilenameFromPath(InMemorySolution.SolutionPath,false)
+            local cacheFile = vim.fn.stdpath('cache') .. '/solution.nvim'.."/"..solutionName..".json"
+            vim.notify("Updating file ".. cacheFile,vim.log.levels.INFO,{title="Solution.nvim"})
+            local data = {
+                SolutionPath = InMemorySolution.SolutionPath,
+                Outputs = CurrentOutputLocations
+            }
+            local json = vim.json.encode(data)
+            -- TODO: Check that file exists
+            -- TODO: Create cache folder.
+            local file = io.open(cacheFile, "w")
+
+            -- Write the string to the file
+            file:write(json)
+
+            -- Close the file
+            file:close()
         end
     end
 
@@ -477,7 +495,7 @@ solution.GetCSProgram= function()
 
     local locs = OutputLocations--s.GetOutputLocations()
     if(locs == nil) then -- TODO: Store ouput locations to cache only display this if there is actuallt nothing.
-        vim.notify("No output location detected. Requesting manual prompt",vim.log.levels.ERROR,{title="User DAP Configuration"})
+        vim.notify("No output location detected. Requesting manual prompt",vim.log.levels.ERROR,{title="Solution.nvim"})
         csProgram = vim.fn.input('Path to dll: ', vim.fn.getcwd() .. '/bin/', 'file')
     elseif(#locs > 1) then
         -- We have more than one ouptut location. Ask the user to select one.
@@ -574,6 +592,46 @@ solution.FindAndLoadSolution = function(options)
         InMemorySolution = SolutionParser.ParseSolution(filename)
         filenameSLN = filename
         vim.notify("Loaded "..filename,vim.log.levels.INFO, {title="Solution.nvim"})
+    end
+    --TODO Load cache here
+
+    local solutionName = Path.GetFilenameFromPath(InMemorySolution.SolutionPath,false)
+    local cacheFile = vim.fn.stdpath('cache') .. '/solution.nvim'.."/"..solutionName..".json"
+
+    local file = io.open(cacheFile, "r")
+    if(file == nil) then
+        return
+    end
+    local jsonData = file:read("*a")
+
+    local json = vim.json.decode(jsonData)
+    print(vim.inspect(json))
+
+    -- Close the file
+    file:close()
+
+    if(json ~= nil) then
+        OutputLocations = json.Outputs
+    end
+end
+
+
+solution.DisplayOutputs = function()
+    local win = require("solution.window")
+
+    if(InMemorySolution == nil) then
+        vim.notify("No solution loaded, nothing to display",vim.log.levels.WARN,{title = "Solution.nvim"})
+        return
+    end
+
+    local window = win.new(" " .. InMemorySolution.SolutionPath .. " Outputs ")
+    window.PaintWindow()
+    window.SetFiletype("lua")
+
+    local str = vim.inspect(OutputLocations)
+    print(str)
+    for _,v in pairs(OutputLocations) do
+        window.AddLine(string.format("%s -> %s",v[1],v[2]))
     end
 end
 
