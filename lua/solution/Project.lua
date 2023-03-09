@@ -21,6 +21,41 @@ Project.ParseProject = function(filename)
     return handler.root
 end
 
+Project.GetProjectProfiles = function(ProjectPath)
+    --From the project path find the project "Properties" directory
+    --Decode the Json and list the tiems alphabeticaly(?)
+    local pd = path.GetParrentDirectory(ProjectPath,os.seperator())
+    local lsfile = pd .. os.seperator() .. "Properties" .. os.seperator() .. "launchSettings.json"
+
+    local f = io.open(lsfile, "r")
+    if (f == nil) then
+        return
+    end
+
+    local json = f:read("*a")
+    local jsonTab = vim.json.decode(json)
+
+    if(jsonTab == nil or jsonTab.profiles == nil) then
+        return
+    end
+
+    -- Since json does not have numeric keys we need to generate
+    -- those ourselves. We add each key and then sort the result.
+    local ordered_keys = {}
+    for k in pairs(jsonTab.profiles) do
+        table.insert(ordered_keys, k)
+    end
+
+    table.sort(ordered_keys)
+    -- We now have numbers for our keys
+    for i = 1, #ordered_keys do
+        local k  = ordered_keys[i]
+        local v = jsonTab.profiles[k]
+        P(k)
+        P(v)
+    end
+end
+
 
 Project.LaunchProject = function(ProjectPath,profile)
     local command = string.format("dotnet run --project %s --launch-profile %s",ProjectPath,profile)
