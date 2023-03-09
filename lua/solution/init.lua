@@ -9,6 +9,7 @@ local win = require("solution.window")
 local SolutionParser = require("solution.SolutionParser")
 local TestManager = require("solution.TestManager")
 local Project = require("solution.Project")
+local OSUtils = require("solution.osutils")
 
 ------------------------------------------------------------------------------
 --                    P R I V A T E  M E M B E R S                          --
@@ -79,6 +80,12 @@ solution.setup = function(config)
     vim.api.nvim_create_user_command("LaunchProject"       , function() Project.LaunchProject(nil,"main")  end               , {desc = "Launch a project"                    } )
     -- Execute test in debug mode
     vim.api.nvim_create_user_command("DebugTest"           , function() TestManager.DebugTest(TestFunctionName) end          , {desc = "Select a test for debug"                    } )
+
+
+    --Generate the cache directory.
+    local cacheDirectory = vim.fn.stdpath("cache").. OSUtils.seperator() .. "solution.nvim"
+    os.execute("mkdir " .. cacheDirectory)
+    print("Created directory: "..cacheDirectory)
 end
 
 solution.ValidateConfiguration = function(config)
