@@ -51,10 +51,16 @@ local SolutionConfig = {
     },
 }
 
+local function ListFN()
+    local ppath = SolutionParser.GetProjectPath(InMemorySolution,1)
+    Project.GetProjectProfiles(ppath)
+    
+end
+
 --- Define user options for the plugin configuration
 -- @param config The user options configuraton object
 solution.setup = function(config)
-    if (config == nil) then
+    if (config == nil or config == {}) then
         -- No configuration use default options that have already been predefined.
         print("No configuration")
         return
@@ -78,6 +84,7 @@ solution.setup = function(config)
     vim.api.nvim_create_user_command("SelectTest"          , solution.SetTest                                                , {desc = "Select a test for debug"                    } )
     vim.api.nvim_create_user_command("ExecuteTest"         , solution.TestSelected                                           , {desc = "Select a test for debug"                    } )
     vim.api.nvim_create_user_command("LaunchProject"       , function() Project.LaunchProject(nil,"main")  end               , {desc = "Launch a project"                    } )
+    vim.api.nvim_create_user_command("ListProjectProfiles" , ListFN, {desc = "Launch a project"                    } )
     -- Execute test in debug mode
     vim.api.nvim_create_user_command("DebugTest"           , function() TestManager.DebugTest(TestFunctionName) end          , {desc = "Select a test for debug"                    } )
 
@@ -87,6 +94,7 @@ solution.setup = function(config)
     os.execute("mkdir " .. cacheDirectory)
     print("Created directory: "..cacheDirectory)
 end
+
 
 solution.ValidateConfiguration = function(config)
     local RequiredConfigKeys = {
