@@ -348,24 +348,28 @@ solution.CompileByFilename = function(filename, options)
                 vim.cmd.cclose()
             end
             OutputLocations = CurrentOutputLocations
-            -- TODO: Store ouput locations to cache
+            --Store ouput locations to cache
             local solutionName = Path.GetFilenameFromPath(InMemorySolution.SolutionPath,false)
             local cacheFile = vim.fn.stdpath('cache') .. '/solution.nvim'.."/"..solutionName..".json"
             vim.notify("Updating file ".. cacheFile,vim.log.levels.INFO,{title="Solution.nvim"})
-            local data = {
+            local wdata = {
                 SolutionPath = InMemorySolution.SolutionPath,
                 Outputs = CurrentOutputLocations
             }
-            local json = vim.json.encode(data)
+            local json = vim.json.encode(wdata)
             -- TODO: Check that file exists
             -- TODO: Create cache folder.
             local file = io.open(cacheFile, "w")
 
-            -- Write the string to the file
-            file:write(json)
+            if(file ~= nil) then
+                -- Write the string to the file
+                file:write(json)
 
-            -- Close the file
-            file:close()
+                -- Close the file
+                file:close()
+            else
+                vim.notify("Could not write to cache location: ".. cacheFile,vim.log.levels.ERROR,{title="Solution.nvim"})
+            end
         end
     end
 
