@@ -91,8 +91,11 @@ solution.setup = function(config)
 
     --Generate the cache directory.
     local cacheDirectory = vim.fn.stdpath("cache").. OSUtils.seperator() .. "solution.nvim"
-    os.execute("mkdir " .. cacheDirectory)
-    print("Created directory: "..cacheDirectory)
+    local r = vim.fn.mkdir(cacheDirectory,"p")
+    -- Windows code 0 is sucess and 1 if the directory aloready exists
+    if(r ~= 0 and r ~= 1) then
+        print("Failed to create directory: "..cacheDirectory)
+    end
 end
 
 
