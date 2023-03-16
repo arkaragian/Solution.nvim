@@ -56,16 +56,24 @@ Project.GetProjectProfiles = function(ProjectPath)
     end
 end
 
+Project.GetArgStringFromProfile = function(profile)
+    return profile.commandLineArgs
+end
+
 
 Project.LaunchProject = function(ProjectPath,profile)
-    local command = string.format("dotnet run --project %s --launch-profile %s",ProjectPath,profile)
-    local _ = vim.fn.jobstart(command,{
+    -- In order to execute a project we need the following:
+    -- 1 The launch profile that supplies the command line arguments
+    -- 2 
+    local command = string.format("!dotnet run --project %s --launch-profile %s<CR>",ProjectPath,profile)
+    vim.cmd(command)
+    --local _ = vim.fn.jobstart(command,{
         --on_stderr = on_event,
         --on_stdout = on_event,
         --on_exit = on_event,
         --stdout_buffered = true,
         --stderr_buffered = true,
-    })
+    --})
 end
 
 return Project

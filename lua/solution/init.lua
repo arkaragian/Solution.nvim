@@ -10,6 +10,7 @@ local SolutionParser = require("solution.SolutionParser")
 local TestManager = require("solution.TestManager")
 local Project = require("solution.Project")
 local OSUtils = require("solution.osutils")
+local CacheManager = require("solution.CacheManager")
 
 ------------------------------------------------------------------------------
 --                    P R I V A T E  M E M B E R S                          --
@@ -83,19 +84,21 @@ solution.setup = function(config)
     vim.api.nvim_create_user_command("SelectWaringDisplay" , solution.SelectWaringDisplay                                    , {desc = "Select if compilation warnings are visible" } )
     vim.api.nvim_create_user_command("SelectTest"          , solution.SetTest                                                , {desc = "Select a test for debug"                    } )
     vim.api.nvim_create_user_command("ExecuteTest"         , solution.TestSelected                                           , {desc = "Select a test for debug"                    } )
-    vim.api.nvim_create_user_command("LaunchProject"       , function() Project.LaunchProject(nil,"main")  end               , {desc = "Launch a project"                    } )
+    --vim.api.nvim_create_user_command("LaunchProject"       , function() Project.LaunchProject(nil,"main")  end               , {desc = "Launch a project"                    } )
+    vim.api.nvim_create_user_command("LaunchProject"       ,"!dotnet run<CR>"                                                , {desc = "Launch a project"                    } )
     vim.api.nvim_create_user_command("ListProjectProfiles" , ListFN, {desc = "Launch a project"                    } )
     -- Execute test in debug mode
     vim.api.nvim_create_user_command("DebugTest"           , function() TestManager.DebugTest(TestFunctionName) end          , {desc = "Select a test for debug"                    } )
 
 
     --Generate the cache directory.
-    local cacheDirectory = vim.fn.stdpath("cache").. OSUtils.seperator() .. "solution.nvim"
-    local r = vim.fn.mkdir(cacheDirectory,"p")
-    -- Windows code 0 is sucess and 1 if the directory aloready exists
-    if(r ~= 0 and r ~= 1) then
-        print("Failed to create directory: "..cacheDirectory)
-    end
+    CacheManager.CreateCacheRoot()
+
+    local c = {"start","cmd","/K","dir"}
+    local opts = {detach = true}
+
+    --vim.fn.jobstart(c,opts)
+
 end
 
 
@@ -378,7 +381,7 @@ solution.CompileByFilename = function(filename, options)
         on_stderr = on_event,
         on_stdout = on_event,
         on_exit = on_event,
-        --stdout_buffered = true,
+        --stdout_buffered = truee
         --stderr_buffered = true,
     })
 
@@ -612,6 +615,7 @@ solution.FindAndLoadSolution = function(options)
     if(InMemorySolution == nil or InMemorySolution.SolutionPath ~= filename) then
         -- Parse Solution
         InMemorySolution = SolutionParser.ParseSolution(filename)
+        CacheManager.SetupCache(InMemorySolution.SolutionPath)
         filenameSLN = filename
         vim.notify("Loaded "..filename,vim.log.levels.INFO, {title="Solution.nvim"})
     end
@@ -693,6 +697,11 @@ end
 
 solution.Clean= function(options)
     solution.PerformCommand("clean", options)
+end
+
+solution.LaunchProject = function()
+    -- Get Current Startup project.
+    -- Get active profile if a Properties directory exist 
 end
 
 solution.Test = function()
