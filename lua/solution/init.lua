@@ -94,11 +94,6 @@ solution.setup = function(config)
     --Generate the cache directory.
     CacheManager.CreateCacheRoot()
 
-    local c = {"start","cmd","/K","dir"}
-    local opts = {detach = true}
-
-    --vim.fn.jobstart(c,opts)
-
 end
 
 
@@ -352,27 +347,7 @@ solution.CompileByFilename = function(filename, options)
             end
             OutputLocations = CurrentOutputLocations
             --Store ouput locations to cache
-            local solutionName = Path.GetFilenameFromPath(InMemorySolution.SolutionPath,false)
-            local cacheFile = vim.fn.stdpath('cache') .. '/solution.nvim'.."/"..solutionName..".json"
-            vim.notify("Updating file ".. cacheFile,vim.log.levels.INFO,{title="Solution.nvim"})
-            local wdata = {
-                SolutionPath = InMemorySolution.SolutionPath,
-                Outputs = CurrentOutputLocations
-            }
-            local json = vim.json.encode(wdata)
-            -- TODO: Check that file exists
-            -- TODO: Create cache folder.
-            local file = io.open(cacheFile, "w")
-
-            if(file ~= nil) then
-                -- Write the string to the file
-                file:write(json)
-
-                -- Close the file
-                file:close()
-            else
-                vim.notify("Could not write to cache location: ".. cacheFile,vim.log.levels.ERROR,{title="Solution.nvim"})
-            end
+            CacheManager.SetSolutionOutputs(InMemorySolution.SolutionPath,OutputLocations)
         end
     end
 
@@ -536,8 +511,11 @@ solution.GetCSProgram= function()
         -- We want to make the results easier to select so we need to format
         -- them correctly
         for _,v in ipairs(locs) do
-            maxLeftLength  = math.max(maxLeftLength,string.len(v[1]))
-            maxRightLength = math.max(maxRightLength,string.len(v[2]))
+            --maxLeftLength  = math.max(maxLeftLength,string.len(v[1]))
+            --maxRightLength = math.max(maxRightLength,string.len(v[2]))
+
+            maxLeftLength  = math.max(maxLeftLength,string.len(v.Project))
+            maxRightLength = math.max(maxRightLength,string.len(v.OutputLocation))
         end
 
         -- Generate the formated results
@@ -619,45 +597,34 @@ solution.FindAndLoadSolution = function(options)
         filenameSLN = filename
         vim.notify("Loaded "..filename,vim.log.levels.INFO, {title="Solution.nvim"})
     end
-    --TODO Load cache here
 
-    local solutionName = Path.GetFilenameFromPath(InMemorySolution.SolutionPath,false)
-    local cacheFile = vim.fn.stdpath('cache') .. '/solution.nvim'.."/"..solutionName..".json"
-
-    local file = io.open(cacheFile, "r")
-    if(file == nil) then
-        return
-    end
-    local jsonData = file:read("*a")
-
-    local json = vim.json.decode(jsonData)
-    print(vim.inspect(json))
-
-    -- Close the file
-    file:close()
-
-    if(json ~= nil) then
-        OutputLocations = json.Outputs
-    end
+    -- Here we have:
+    -- 1) found and loaded the solution in memory.
+    -- 2) Setup our cache if the solution has neven been encountered before.
+    -- Now we only need to load the output locations
+    OutputLocations = CacheManager.GetSolutionOutputs(InMemorySolution.SolutionPath)
 end
 
 
 solution.DisplayOutputs = function()
-    local win = require("solution.window")
 
-    if(InMemorySolution == nil) then
-        vim.notify("No solution loaded, nothing to display",vim.log.levels.WARN,{title = "Solution.nvim"})
+    if(OutputLocations == nil) then
+        vim.notify("No outputs loaded, nothing to display",vim.log.levels.WARN,{title = "Solution.nvim"})
         return
     end
 
-    local window = win.new(" " .. InMemorySolution.SolutionPath .. " Outputs ")
+    local window
+    if(InMemorySolution ~= nil) then
+        window = win.new(" " .. InMemorySolution.SolutionPath .. " Outputs ")
+    else
+        window = win.new(" Outputs ")
+    end
     window.PaintWindow()
-    window.SetFiletype("lua")
+    --window.SetFiletype("lua")
 
-    local str = vim.inspect(OutputLocations)
-    print(str)
+    --print(str)
     for _,v in pairs(OutputLocations) do
-        window.AddLine(string.format("%s -> %s",v[1],v[2]))
+        window.AddLine(string.format("%s -> %s",v.Project,v.OutputLocation))
     end
 end
 

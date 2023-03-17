@@ -5,6 +5,11 @@ local CacheManager = {}
 local State = {
     CacheRootInitialized = false
 }
+
+local CacheFiles  = {
+    Index = "index.json",
+    Outputs = "outputs.json"
+}
 -- All persitent data is stored inside the cache directory. Each solution file has it's own
 -- directory where any persistent data for this solution is stored. We chose a directory and
 -- not a file because we want to be flexible on what we can store.
@@ -16,8 +21,12 @@ local State = {
 -- the <HashCode>_1 <HashCode>_2 ... <HashCode>_n
 
 
-CacheManager.CacheRootLocation =  vim.fn.stdpath("cache").. OSUtils.seperator() .. "solution.nvim"
+CacheManager.CacheRootLocation = vim.fn.stdpath("cache").. OSUtils.seperator() .. "solution.nvim"
 
+
+CacheManager.ProvidePath = function(SolutionPath,file)
+    return CacheManager.CacheRootLocation .. OSUtils.seperator() .. CacheManager.HashString(SolutionPath) .. OSUtils.seperator() .. file
+end
 --CacheManager.CacheRootLocation = function()
 --    local cacheRoot = vim.fn.stdpath("cache").. OSUtils.seperator() .. "solution.nvim"
 --    return cacheRoot
@@ -88,19 +97,19 @@ end
 
 --- Returns the cache directory location for the given solution path.
 -- @param SolutionPath The path of the solution
-CacheManager.GetCacheLocation = function(SolutionPath)
-    local startLocation = CacheManager.CacheRootLocation() .. OSUtils.seperator() .. CacheManager.HashString(SolutionPath)
-    -- Read the file in the result and check the solution path there. If it not the same this means that we have a
-    -- colision. Append a _<number> postfix and retry. If we read the correct path then return the location of this
-    -- file.
-    local indexfile = startLocation .. OSUtils.seperator() .. "index.json"
-    local f = io.open(indexfile,"r")
-    if (f==nil) then
-        -- We could not open the file we can assume that the file does not
-        -- exist and thus we can use this location for our cache.
-        return startLocation
-    end
-end
+--CacheManager.GetCacheLocation = function(SolutionPath)
+--    local startLocation = CacheManager.CacheRootLocation() .. OSUtils.seperator() .. CacheManager.HashString(SolutionPath)
+--    -- Read the file in the result and check the solution path there. If it not the same this means that we have a
+--    -- colision. Append a _<number> postfix and retry. If we read the correct path then return the location of this
+--    -- file.
+--    local indexfile = startLocation .. OSUtils.seperator() .. "index.json"
+--    local f = io.open(indexfile,"r")
+--    if (f==nil) then
+--        -- We could not open the file we can assume that the file does not
+--        -- exist and thus we can use this location for our cache.
+--        return startLocation
+--    end
+--end
 
 
 CacheManager.WriteIndexFile = function(SolutionCacheDirectory, SolutionPath)
@@ -130,6 +139,54 @@ CacheManager.ReadIndexFile = function(SolutionCacheDirectory)
     io.close(indf)
     return jsonTab
 end
+
+CacheManager.SetSolutionOutputs = function(SolutionPath, OutputLocations)
+    local location = CacheManager.ProvidePath(SolutionPath,CacheFiles.Outputs)
+
+    if(OutputLocations == nil) then
+        return
+    end
+
+    --vim.notify("Updating file ".. cacheFile,vim.log.levels.INFO,{title="Solution.nvim"})
+    local wdata = {
+        OutputLocations = OutputLocations
+    }
+    local json = vim.json.encode(wdata)
+
+    local file = io.open(location, "w")
+
+    if(file ~= nil) then
+        -- Write the string to the file
+        file:write(json)
+
+        -- Close the file
+        file:close()
+    else
+        vim.notify("Could not write compilation output locations",vim.log.levels.ERROR,{title="Solution.nvim"})
+    end
+end
+
+CacheManager.GetSolutionOutputs = function(SolutionPath)
+    local OutputsFile = CacheManager.ProvidePath(SolutionPath,CacheFiles.Outputs)
+
+    local file = io.open(OutputsFile, "r")
+    if(file == nil) then
+        vim.notify("No output file found",vim.log.levels.WARN,{title = "Solution.nvim"})
+        return nil
+    end
+    local jsonData = file:read("*a")
+
+    local json = vim.json.decode(jsonData)
+    -- Close the file
+    file:close()
+
+    if(json ~= nil) then
+        vim.notify("Outputs loaded",vim.log.levels.WARN,{title = "Solution.nvim"})
+        return json["OutputLocations"]
+    end
+end
+
+
 
 CacheManager.HashString = function(str)
     local hash = 0

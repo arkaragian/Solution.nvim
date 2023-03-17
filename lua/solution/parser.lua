@@ -16,7 +16,10 @@ Parser.ParseOutputDirectory = function(line,OutputTable)
         local project = string.sub(line,1,i-1)
         local output = string.sub(line,j+1,string.len(line))
         -- TODO: Trim
-        local entry = {utils.StringTrimWhiteSpace(project),utils.StringTrimWhiteSpace(output)}
+        local entry = {
+            Project = utils.StringTrimWhiteSpace(project),
+            OutputLocation = utils.StringTrimWhiteSpace(output)
+        }
         local index = #OutputTable + 1
         OutputTable[index] = entry
     end
