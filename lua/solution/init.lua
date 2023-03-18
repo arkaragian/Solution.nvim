@@ -7,6 +7,7 @@ local Path = require("solution.path")
 local Parser = require("solution.parser")
 local win = require("solution.window")
 local SolutionParser = require("solution.SolutionParser")
+local SolutionManager = require("solution.SolutionManager")
 local TestManager = require("solution.TestManager")
 local Project = require("solution.Project")
 local OSUtils = require("solution.osutils")
@@ -44,26 +45,20 @@ local SolutionConfig = {
     -- First indicates to use the first file that is found and is applicable
     -- select indicates to ask to selection of there are multiple files found
     ProjectSelectionPolicy = "first",
-    BuildConfiguration = "Debug",
-    BuildPlatform = "Any CPU",
+    DefaultBuildConfiguration = "Debug",
+    DefaultBuildPlatform = "Any CPU",
     Display = { -- Controls options for popup windows.
         RemoveCR = true,
         HideCompilationWarnings = true
     },
 }
 
-local function ListFN()
-    local ppath = SolutionParser.GetProjectPath(InMemorySolution,1)
-    Project.GetProjectProfiles(ppath)
-    
-end
 
 --- Define user options for the plugin configuration
 -- @param config The user options configuraton object
 solution.setup = function(config)
     if (config == nil or config == {}) then
         -- No configuration use default options that have already been predefined.
-        print("No configuration")
         return
     else
         SolutionConfig = config
@@ -71,24 +66,26 @@ solution.setup = function(config)
 
     local r = solution.ValidateConfiguration(SolutionConfig)
     if(not r) then
+        vim.notify("Invalid configuration!",vim.log.levels.ERROR,{title="Solution.nvim"})
         return;
     end
 
     solution.GetCompilerVersion()
 
-    vim.api.nvim_create_user_command("LoadSolution"        , function() solution.FindAndLoadSolution(SolutionConfig) end     , {desc = "Loads a solution in memory"                 } )
-    vim.api.nvim_create_user_command("DisplaySolution"     , function() SolutionParser.DisplaySolution(InMemorySolution) end , {desc = "Displays the loaded solution"               } )
-    vim.api.nvim_create_user_command("DisplayExecutables"  , solution.DisplayOutputs                                         , {desc = "Displays the loaded solution"               } )
-    vim.api.nvim_create_user_command("SelectConfiguration" , solution.SelectConfiguration                                    , {desc = "Select Active Build Configuration"          } )
-    vim.api.nvim_create_user_command("SelectPlatform"      , solution.SelectPlatform                                         , {desc = "Select Active Build Platform"               } )
-    vim.api.nvim_create_user_command("SelectWaringDisplay" , solution.SelectWaringDisplay                                    , {desc = "Select if compilation warnings are visible" } )
-    vim.api.nvim_create_user_command("SelectTest"          , solution.SetTest                                                , {desc = "Select a test for debug"                    } )
-    vim.api.nvim_create_user_command("ExecuteTest"         , solution.TestSelected                                           , {desc = "Select a test for debug"                    } )
-    --vim.api.nvim_create_user_command("LaunchProject"       , function() Project.LaunchProject(nil,"main")  end               , {desc = "Launch a project"                    } )
-    vim.api.nvim_create_user_command("LaunchProject"       ,"!dotnet run<CR>"                                                , {desc = "Launch a project"                    } )
-    vim.api.nvim_create_user_command("ListProjectProfiles" , ListFN, {desc = "Launch a project"                    } )
+    vim.api.nvim_create_user_command("LoadSolution"             , solution.LoadSolution             , {desc = "Loads a solution in memory"                 } )
+    vim.api.nvim_create_user_command("DisplaySolution"          , solution.DisplaySolution          , {desc = "Displays the loaded solution"               } )
+    vim.api.nvim_create_user_command("DisplayExecutables"       , solution.DisplayOutputs           , {desc = "Displays the loaded solution"               } )
+    vim.api.nvim_create_user_command("SelectBuildConfiguration" , solution.SelectBuildConfiguration , {desc = "Select Active Build Configuration"          } )
+    vim.api.nvim_create_user_command("SelectPlatform"           , solution.SelectBuildPlatform      , {desc = "Select Active Build Platform"               } )
+    vim.api.nvim_create_user_command("SelectWaringDisplay"      , solution.SelectWaringDisplay      , {desc = "Select if compilation warnings are visible" } )
+    vim.api.nvim_create_user_command("SelectTest"               , solution.SetTest                  , {desc = "Select a test for debug"                    } )
+    vim.api.nvim_create_user_command("ExecuteTest"              , solution.TestSelected             , {desc = "Select a test for debug"                    } )
+    vim.api.nvim_create_user_command("LaunchProject"            , "!dotnet run<CR>"                 , {desc = "Launch a project"                           } )
+    vim.api.nvim_create_user_command("ListProjectProfiles"      , solution.ListProjectProfiles      , {desc = "Launch a project"                           } )
     -- Execute test in debug mode
     vim.api.nvim_create_user_command("DebugTest"           , function() TestManager.DebugTest(TestFunctionName) end          , {desc = "Select a test for debug"                    } )
+
+    --vim.api.nvim_create_user_command("LaunchProject"       , function() Project.LaunchProject(nil,"main")  end               , {desc = "Launch a project"                    } )
 
 
     --Generate the cache directory.
@@ -96,19 +93,49 @@ solution.setup = function(config)
 
 end
 
+-----------------------------------------------------------------------------
+--               U S E R  M A P P A B L E  P U B L I C  A P I              --
+-----------------------------------------------------------------------------
+
+solution.LoadSolution = function()
+    solution.FindAndLoadSolution(SolutionConfig)
+end
+
+solution.DisplaySolution = function()
+    SolutionParser.DisplaySolution(SolutionManager.Solution)
+end
+
+solution.DisplayOutputs = function()
+    SolutionManager.DisplayOutputs()
+end
+
+solution.SelectBuildConfiguration = function()
+    SolutionManager.SelectBuildConfiguration()
+end
+
+solution.SelectBuildPlatform = function()
+    SolutionManager.SelectBuildPlatform()
+end
+
+solution.ListProjectProfiles = function()
+    local ppath = SolutionParser.GetProjectPath(SolutionManager.Solution,1)
+    Project.GetProjectProfiles(ppath)
+end
+
 
 solution.ValidateConfiguration = function(config)
     local RequiredConfigKeys = {
-        ["ProjectSelectionPolicy"] = true,
-        ["BuildConfiguration"]     = true,
-        ["BuildPlatform"]          = true,
-        ["Display"]                = true
+        ["ProjectSelectionPolicy"]    = true,
+        ["DefaultBuildConfiguration"] = true,
+        ["DefaultBuildPlatform"]      = true,
+        ["Display"]                   = true
     }
 
     local RequiredDisplayKeys = {
         ["RemoveCR"]                = true,
         ["HideCompilationWarnings"] = true
     }
+
 
     for key, _ in pairs(RequiredConfigKeys) do
         if(config[key] == nil) then
@@ -122,7 +149,7 @@ solution.ValidateConfiguration = function(config)
     end
 
     -- Build configuration may be any string
-    if(type(config.BuildConfiguration) ~= "string") then
+    if(type(config.DefaultBuildConfiguration) ~= "string") then
         return false
     end
 
@@ -140,87 +167,6 @@ solution.ValidateConfiguration = function(config)
     return true
 end
 
---- Prompts the user to select the configuration that will be used for the project.
-solution.SelectConfiguration = function()
-    if(InMemorySolution == nil) then
-        -- Try to find a solution. Maybe there is no solution is loaded.
-        solution.FindAndLoadSolution()
-        if(InMemorySolution == nil) then
-            print("No solution found!")
-            return
-        end
-    end
-
-    local items = {
-    }
-
-    local hash = {
-    }
-
-    for _,v in ipairs(InMemorySolution.SolutionConfigurations) do
-        -- We may have the same configuration with mulitple platforms
-        -- We only keep the unique values using the hash table but we also
-        -- print them in order or declaration
-        if(not hash[v[1]]) then
-            hash[v[1]] = true
-        end
-    end
-
-    local opts = {
-        prompt = string.format("Select Build Configuration [%s]:",InMemorySolution.SolutionPath)
-    }
-    vim.ui.select(items,opts,solution.SetConfiguration)
-end
-
-solution.SetConfiguration = function(item,index)
-    if not item then
-        return
-    end
-    _ = index
-    SolutionConfig.BuildConfiguration = item
-end
-
-solution.SelectPlatform = function()
-    if(InMemorySolution == nil) then
-        -- Try to find a solution. Maybe there is no solution is loaded.
-        solution.FindAndLoadSolution()
-        if(InMemorySolution == nil) then
-            vim.notify("No solution found.",vim.log.levels.WARN, {title="Solution.nvim"})
-            return
-        end
-    end
-
-    local items = {
-    }
-
-    local hash = {
-    }
-
-    for _,v in ipairs(InMemorySolution.SolutionConfigurations) do
-        -- We may have the same configuration with mulitple platforms
-        -- We only keep the unique values using the hash table but we
-        -- also print them in order or declaration
-        if(v[1] == SolutionConfig.BuildConfiguration) then
-            if(not hash[v[2]]) then
-                hash[v[2]] = true
-                table.insert(items,v[2])
-            end
-        end
-    end
-
-    local opts = {
-        prompt = string.format("Select Platform for [%s] Configuration [%s]:",InMemorySolution.SolutionPath,SolutionConfig.BuildConfiguration)
-    }
-    vim.ui.select(items,opts,solution.SetConfiguration)
-end
-
-solution.SetPlatform = function(item,index)
-    if not item then
-        return
-    end
-    _ = index
-    SolutionConfig.BuildPlatform = item
-end
 
 solution.SelectWaringDisplay = function()
     local items = {
@@ -230,28 +176,24 @@ solution.SelectWaringDisplay = function()
     local opts = {
         prompt = "When compiling:"
     }
-    vim.ui.select(items,opts,solution.SetWarningDisplay)
-end
 
-solution.SetWarningDisplay = function(item,index)
-    if not item then
-        return
+    local SelectionHandler = function(item,_) -- Discard index
+        if not item then
+            return
+        end
+        if(item == "Show Warnings") then
+            SolutionConfig.Display.HideCompilationWarnings = false
+        else
+            SolutionConfig.Display.HideCompilationWarnings = true
+        end
     end
-    _ = index
-    if(item == "Show Warnings") then
-        SolutionConfig.Display.HideCompilationWarnings = false
-    else
-        SolutionConfig.Display.HideCompilationWarnings = true
-    end
-end
 
-solution.GetOutputLocations = function()
-    return OutputLocations
+    vim.ui.select(items,opts,SelectionHandler)
 end
 
 solution.CompileByFilename = function(filename, options)
     -- dotnet build [<PROJECT | SOLUTION>...] [options]
-    local command = "dotnet build " .. filename .. " -c " .. options.BuildConfiguration
+    local command = "dotnet build " .. filename .. " -c " .. options.DefaultBuildConfiguration
     if(Path.GetFileExtension(filename) ~= ".sln") then
         -- We cannot build a solution and specify a project architecture.
         --command = command .. " -a " .. options.arch
@@ -271,7 +213,7 @@ solution.CompileByFilename = function(filename, options)
     local errors = 0
     local warnings = 0
 
-    OutputLocations = nil
+    SolutionManager.OutputLocations = nil
 
 
     local CompileOutputWindow = win.new(" Compiling " .. filename .. " ")
@@ -345,9 +287,9 @@ solution.CompileByFilename = function(filename, options)
             else
                 vim.cmd.cclose()
             end
-            OutputLocations = CurrentOutputLocations
+            SolutionManager.OutputLocations = CurrentOutputLocations
             --Store ouput locations to cache
-            CacheManager.SetSolutionOutputs(InMemorySolution.SolutionPath,OutputLocations)
+            CacheManager.SetSolutionOutputs(SolutionManager.Solution.SolutionPath,CurrentOutputLocations)
         end
     end
 
@@ -360,7 +302,6 @@ solution.CompileByFilename = function(filename, options)
         --stderr_buffered = true,
     })
 
-    --TODO: Store ouptut locations to cache
 end
 
 solution.CleanByFilename = function(filename)
@@ -590,10 +531,10 @@ solution.FindAndLoadSolution = function(options)
         return 2
     end
 
-    if(InMemorySolution == nil or InMemorySolution.SolutionPath ~= filename) then
+    if(SolutionManager.Solution == nil or SolutionManager.Solution.SolutionPath ~= filename) then
         -- Parse Solution
-        InMemorySolution = SolutionParser.ParseSolution(filename)
-        CacheManager.SetupCache(InMemorySolution.SolutionPath)
+        SolutionManager.Solution = SolutionParser.ParseSolution(filename)
+        CacheManager.SetupCache(SolutionManager.Solution.SolutionPath)
         filenameSLN = filename
         vim.notify("Loaded "..filename,vim.log.levels.INFO, {title="Solution.nvim"})
     end
@@ -602,31 +543,9 @@ solution.FindAndLoadSolution = function(options)
     -- 1) found and loaded the solution in memory.
     -- 2) Setup our cache if the solution has neven been encountered before.
     -- Now we only need to load the output locations
-    OutputLocations = CacheManager.GetSolutionOutputs(InMemorySolution.SolutionPath)
+    SolutionManager.OutputLocations = CacheManager.GetSolutionOutputs(SolutionManager.Solution.SolutionPath)
 end
 
-
-solution.DisplayOutputs = function()
-
-    if(OutputLocations == nil) then
-        vim.notify("No outputs loaded, nothing to display",vim.log.levels.WARN,{title = "Solution.nvim"})
-        return
-    end
-
-    local window
-    if(InMemorySolution ~= nil) then
-        window = win.new(" " .. InMemorySolution.SolutionPath .. " Outputs ")
-    else
-        window = win.new(" Outputs ")
-    end
-    window.PaintWindow()
-    --window.SetFiletype("lua")
-
-    --print(str)
-    for _,v in pairs(OutputLocations) do
-        window.AddLine(string.format("%s -> %s",v.Project,v.OutputLocation))
-    end
-end
 
 solution.PerformCommand = function(command,options)
     -- This wil popoulate the filenameSLN value
