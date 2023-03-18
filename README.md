@@ -36,8 +36,8 @@ local SolutionConfig = {
     -- First indicates to use the first file that is found and is applicable
     -- select indicates to ask to selection of there are multiple files found
     ProjectSelectionPolicy = "first",
-    BuildConfiguration = "Debug",
-    BuildPlatform = "Any CPU",
+    DefaultBuildConfiguration = "Debug",
+    DefaultBuildPlatform = "Any CPU",
     display = { -- Controls options for popup windows.
         removeCR = true,
         HideCompilationWarnings = true
