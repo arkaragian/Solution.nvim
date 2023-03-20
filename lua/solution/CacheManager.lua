@@ -141,6 +141,9 @@ CacheManager.ReadIndexFile = function(SolutionCacheDirectory)
 end
 
 CacheManager.SetSolutionOutputs = function(SolutionPath, OutputLocations)
+    if(SolutionPath == nil) then
+        return
+    end
     local location = CacheManager.ProvidePath(SolutionPath,CacheFiles.Outputs)
 
     if(OutputLocations == nil) then

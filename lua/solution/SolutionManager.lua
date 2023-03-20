@@ -4,6 +4,9 @@
 --See https://www.2n.pl/blog/how-to-write-neovim-plugins-in-lua
 local win = require("solution.window")
 
+local Parser = require("solution.parser")
+local CacheManager = require("solution.CacheManager")
+
 local SolutionManager = {}
 
 -- A runtime configuration that defines the handling of the currently loaded
@@ -23,8 +26,12 @@ SolutionManager.Solution = nil
 SolutionManager.OutputLocations = nil
 
 
-SolutionManager.SetConfiguration = function(conf)
-    Current = conf
+SolutionManager.SetBuildConfiguration = function(BuildConfiguration)
+    Current.BuildConfiguration = BuildConfiguration
+end
+
+SolutionManager.SetBuildPlatform = function(BuildPlatform)
+    Current.BuildPlatform= BuildPlatform 
 end
 
 
@@ -125,9 +132,13 @@ SolutionManager.DisplayOutputs = function()
     end
 end
 
-SolutionManager.CompileSolution = function(options)
+SolutionManager.CompileSolution = function()
     -- dotnet build [<PROJECT | SOLUTION>...] [options]
     --local command = "dotnet build " .. filename .. " -c " .. options.BuildConfiguration
+    if(SolutionManager.Solution == nil) then
+        vim.notify("No solution loaded. Nothing to compile",vim.log.levels.ERROR, {title="Solution.nvim"})
+        return
+    end
     local command = "dotnet build " .. SolutionManager.Solution.SolutionPath .. " -c " .. Current.BuildConfiguration
 
 
@@ -220,7 +231,7 @@ SolutionManager.CompileSolution = function(options)
             end
             SolutionManager.OutputLocations = CurrentOutputLocations
             --Store ouput locations to cache
-            CacheManager.SetSolutionOutputs(SolutionManager.Solution.SolutionPath,OutputLocations)
+            CacheManager.SetSolutionOutputs(SolutionManager.Solution.SolutionPath,CurrentOutputLocations)
         end
     end
 

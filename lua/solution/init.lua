@@ -10,18 +10,19 @@ local SolutionParser = require("solution.SolutionParser")
 local SolutionManager = require("solution.SolutionManager")
 local TestManager = require("solution.TestManager")
 local Project = require("solution.Project")
-local OSUtils = require("solution.osutils")
 local CacheManager = require("solution.CacheManager")
 
 ------------------------------------------------------------------------------
 --                    P R I V A T E  M E M B E R S                          --
 ------------------------------------------------------------------------------
 
+local SolutionSelectionPolicies = {
+    First = "first",
+    Selection = "selection"
+}
+
 -- File filename of the solution or project that is beeing parsed.
 local filenameSLN = nil
-
--- The current in memory solution or project
-local InMemorySolution = nil
 
 -- The test name that will be executed
 local TestFunctionName = nil
@@ -44,7 +45,7 @@ local SolutionConfig = {
     -- 2) selection
     -- First indicates to use the first file that is found and is applicable
     -- select indicates to ask to selection of there are multiple files found
-    ProjectSelectionPolicy = "first",
+    SolutionSelectionPolicy = "first",
     DefaultBuildConfiguration = "Debug",
     DefaultBuildPlatform = "Any CPU",
     Display = { -- Controls options for popup windows.
@@ -82,6 +83,7 @@ solution.setup = function(config)
     vim.api.nvim_create_user_command("ExecuteTest"              , solution.TestSelected             , {desc = "Select a test for debug"                    } )
     vim.api.nvim_create_user_command("LaunchProject"            , "!dotnet run<CR>"                 , {desc = "Launch a project"                           } )
     vim.api.nvim_create_user_command("ListProjectProfiles"      , solution.ListProjectProfiles      , {desc = "Launch a project"                           } )
+    vim.api.nvim_create_user_command("CompileSolution"          , solution.Compile                  , {desc = "Compiles the currently loaded solution"     } )
     -- Execute test in debug mode
     vim.api.nvim_create_user_command("DebugTest"           , function() TestManager.DebugTest(TestFunctionName) end          , {desc = "Select a test for debug"                    } )
 
@@ -90,6 +92,9 @@ solution.setup = function(config)
 
     --Generate the cache directory.
     CacheManager.CreateCacheRoot()
+
+    SolutionManager.SetBuildConfiguration(SolutionConfig.DefaultBuildConfiguration)
+    SolutionManager.SetBuildPlatform(SolutionConfig.DefaultBuildPlatform)
 
 end
 
@@ -122,10 +127,15 @@ solution.ListProjectProfiles = function()
     Project.GetProjectProfiles(ppath)
 end
 
+solution.Compile = function()
+    SolutionManager.CompileSolution()
+end
+-----------------------------------------------------------------------------
+
 
 solution.ValidateConfiguration = function(config)
     local RequiredConfigKeys = {
-        ["ProjectSelectionPolicy"]    = true,
+        ["SolutionSelectionPolicy"]   = true,
         ["DefaultBuildConfiguration"] = true,
         ["DefaultBuildPlatform"]      = true,
         ["Display"]                   = true
@@ -143,8 +153,18 @@ solution.ValidateConfiguration = function(config)
             return false
         end
     end
+    -- TODO Fix this check using the enum
     -- Validate correct values individually
-    if(config.ProjectSelectionPolicy ~= "first" and config.ProjectSelectionPolicy ~= "selection") then
+    --if(config.ProjectSelectionPolicy ~= "first" and config.ProjectSelectionPolicy ~= "selection") then
+    --    return false
+    --end
+    local checkOk = false
+    for _,v in pairs(SolutionSelectionPolicies) do
+        if(config.SolutionSelectionPolicy == v) then
+            checkOk = true
+        end
+    end
+    if(checkOk == false) then
         return false
     end
 
@@ -191,118 +211,6 @@ solution.SelectWaringDisplay = function()
     vim.ui.select(items,opts,SelectionHandler)
 end
 
-solution.CompileByFilename = function(filename, options)
-    -- dotnet build [<PROJECT | SOLUTION>...] [options]
-    local command = "dotnet build " .. filename .. " -c " .. options.DefaultBuildConfiguration
-    if(Path.GetFileExtension(filename) ~= ".sln") then
-        -- We cannot build a solution and specify a project architecture.
-        --command = command .. " -a " .. options.arch
-        _ = 5
-    end
-
-    -- The items to be Displayed
-    local items = {}
-    -- Reset the quickfix list
-    vim.fn.setqflist(items)
-    local stringLines = {} -- Used to detect duplicates
-
-    -- Detects if we have entries to our quickfix table
-    local counter = 0
-
-    -- Keep track the number of errors and warnings
-    local errors = 0
-    local warnings = 0
-
-    SolutionManager.OutputLocations = nil
-
-
-    local CompileOutputWindow = win.new(" Compiling " .. filename .. " ")
-    CompileOutputWindow.PaintWindow()
-    CompileOutputWindow.AddLine("Command: ".. command)
-    CompileOutputWindow.AddLine("")
-
-    local ErrorHighlight = {
-        hl_group = "Error",
-    }
-
-    local WarningHighlight = {
-        hl_group = "WarningMsg",
-    }
-
-
-    local CurrentOutputLocations = {}
-
-    local function on_event(_, data, event)
-        -- TODO: Rewrite code to remove too much nesting
-        -- While the job is running , it may write to stdout and stderr
-        -- Here we handle when we write to stdout
-        if event == "stdout" or event == "stderr" then
-            -- If we have data, then append them to the lines array
-            if data then
-                for _,theLine in ipairs(data) do
-                    CurrentOutputLocations = Parser.ParseOutputDirectory(theLine,CurrentOutputLocations)
-                    local r = Parser.ParseLine(theLine)
-                    if (r ~= nil and r.type == 'E') then
-                        CompileOutputWindow.AddLine(theLine,SolutionConfig.Display.RemoveCR,ErrorHighlight)
-                    elseif (r ~= nil and r.type == 'W') then
-                        CompileOutputWindow.AddLine(theLine,SolutionConfig.Display.RemoveCR,WarningHighlight)
-                    else
-                        CompileOutputWindow.AddLine(theLine,SolutionConfig.Display.RemoveCR)
-                    end
-                    if not stringLines[theLine] then
-                        stringLines[theLine] = true
-                        if r then
-                            if (r.type == 'E') then
-                                errors = errors + 1
-                                counter = counter + 1
-                                -- Add the line to the table
-                                vim.list_extend(items,{r})
-                            else
-                                warnings = warnings + 1
-                                if(SolutionConfig.Display.HideCompilationWarnings == false) then
-                                    counter = counter + 1
-                                    vim.list_extend(items,{r})
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-        end
-
-        -- When the job exits, populate the quick fix list
-        if event == "exit" then
-            local CounterToUse = 0;
-            if(SolutionConfig.Display.HideCompilationWarnings == true) then
-                CounterToUse = errors
-            else
-                CounterToUse = counter
-            end
-
-            if (CounterToUse > 0) then
-                vim.fn.setqflist(items)
-                vim.cmd.doautocmd("QuickFixCmdPost")
-                vim.cmd.copen()
-                CompileOutputWindow.BringToFront()
-            else
-                vim.cmd.cclose()
-            end
-            SolutionManager.OutputLocations = CurrentOutputLocations
-            --Store ouput locations to cache
-            CacheManager.SetSolutionOutputs(SolutionManager.Solution.SolutionPath,CurrentOutputLocations)
-        end
-    end
-
-    -- https://phelipetls.github.io/posts/async-make-in-nvim-with-lua/
-    local _ = vim.fn.jobstart(command,{
-        on_stderr = on_event,
-        on_stdout = on_event,
-        on_exit = on_event,
-        --stdout_buffered = truee
-        --stderr_buffered = true,
-    })
-
-end
 
 solution.CleanByFilename = function(filename)
     -- dotnet build [<PROJECT | SOLUTION>...] [options]
@@ -504,7 +412,7 @@ solution.FindAndLoadSolution = function(options)
         options = SolutionConfig
     end
 
-    if(options.ProjectSelectionPolicy == "first") then
+    if(options.SolutionSelectionPolicy == SolutionSelectionPolicies.First ) then
         -- Do not select file. Find the first applicable file.
         local slnFile = Path.FindUpstreamFilesByExtension(".sln")
         if(slnFile == nil ) then
@@ -519,7 +427,7 @@ solution.FindAndLoadSolution = function(options)
         else
             filename = slnFile[1]
         end
-    elseif (options.ProjectSelectionPolicy == "select") then
+    elseif (options.SolutionSelectionPolicy == SolutionSelectionPolicies.Selection) then
         -- Select file
         solution.AskForSelection(options)
     else
@@ -575,10 +483,6 @@ solution.PerformCommand = function(command,options)
         tm.GetTests(filenameSLN)
         return
     end
-end
-
-solution.Compile = function()
-    solution.PerformCommand("build", SolutionConfig)
 end
 
 solution.Clean= function(options)

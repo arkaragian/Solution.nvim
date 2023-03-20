@@ -35,7 +35,7 @@ solution.setup({opts})                                       *solution.setup()*
 Performs the initial setup of the plugin. The default options are
 >lua
 local SolutionConfig = {
-    ProjectSelectionPolicy = "first",
+    SolutionSelectionPolicy = "first",
     DefaultBuildConfiguration = "Debug",
     DefaultBuildPlatform = "Any CPU",
     display = { -- Controls options for popup windows.
@@ -45,10 +45,11 @@ local SolutionConfig = {
 }
 <
 
-                                     *solution.defaults.ProjectSelectionPolicy*
-ProjectSelectionPolicy: ~
+                                    *solution.defaults.SolutionSelectionPolicy*
+SolutionSelectionPolicy: ~
 Defines behavior when the plugin encounters multiple solutions in the same upstream
-directory.
+directory. The values that this configuration option can receive can be any of
+the following: "first" and "selection"
 
                                   *solution.defaults.DefaultBuildConfiguration*
 DefaultBuildConfiguration: ~
