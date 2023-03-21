@@ -18,8 +18,6 @@ local Current = {
 
 
 -- The current in memory solution or project
-LoadedSolution = nil
-
 SolutionManager.Solution = nil
 
 -- The output locations of the executales
@@ -37,7 +35,7 @@ end
 
 --- Prompts the user to select the configuration that will be used for the project.
 SolutionManager.SelectBuildConfiguration = function()
-    if(LoadedSolution == nil) then
+    if(SolutionManager.Solution == nil) then
             return
     end
 
@@ -50,7 +48,7 @@ SolutionManager.SelectBuildConfiguration = function()
     -- We may have the same configuration with mulitple platforms
     -- We only keep the unique values using the hash table but we also
     -- print them in order or declaration
-    for _,v in ipairs(LoadedSolution.SolutionConfigurations) do
+    for _,v in ipairs(SolutionManager.Solution.SolutionConfigurations) do
         if(not hash[v[1]]) then
             hash[v[1]] = true
         end
@@ -64,7 +62,7 @@ SolutionManager.SelectBuildConfiguration = function()
     end
 
     local opts = {
-        prompt = string.format("Select Build Configuration [%s]:",LoadedSolution.SolutionPath)
+        prompt = string.format("Select Build Configuration [%s]:",SolutionManager.Solution.SolutionPath)
     }
 
     vim.ui.select(items,opts,SelectionHandler)
@@ -72,8 +70,8 @@ end
 
 
 SolutionManager.SelectBuildPlatform = function()
-    if(LoadedSolution == nil) then
-        if(LoadedSolution == nil) then
+    if(SolutionManager.Solution == nil) then
+        if(SolutionManager.Solution == nil) then
             vim.notify("No solution found.",vim.log.levels.WARN, {title="Solution.nvim"})
             return
         end
@@ -85,7 +83,7 @@ SolutionManager.SelectBuildPlatform = function()
     local hash = {
     }
 
-    for _,v in ipairs(LoadedSolution.SolutionConfigurations) do
+    for _,v in ipairs(SolutionManager.Solution.SolutionConfigurations) do
         -- We may have the same configuration with mulitple platforms
         -- We only keep the unique values using the hash table but we
         -- also print them in order or declaration
@@ -106,7 +104,7 @@ SolutionManager.SelectBuildPlatform = function()
     end
 
     local opts = {
-        prompt = string.format("Select Platform for [%s] Configuration [%s]:",LoadedSolution.SolutionPath,Current.BuildConfiguration)
+        prompt = string.format("Select Platform for [%s] Configuration [%s]:",SolutionManager.Solution.SolutionPath,Current.BuildConfiguration)
     }
     vim.ui.select(items,opts,SelectionHandler)
 end
