@@ -13,7 +13,9 @@ local SolutionManager = {}
 -- solution
 local Current = {
     BuildConfiguration = nil,
-    BuildPlatform = nil
+    BuildPlatform = nil,
+    StartupProject = nil,
+    ProjectProfile = nil
 }
 
 
@@ -30,6 +32,10 @@ end
 
 SolutionManager.SetBuildPlatform = function(BuildPlatform)
     Current.BuildPlatform= BuildPlatform 
+end
+
+SolutionManager.SetStartupProject = function(ProjectName)
+    Current.StartupProject = ProjectName
 end
 
 
@@ -243,6 +249,34 @@ SolutionManager.CompileSolution = function()
     })
 
     --TODO: Store ouptut locations to cache
+end
+
+
+SolutionManager.Launch = function()
+    -- In order to execute a project we need the following:
+    -- 1 The launch profile that supplies the command line arguments
+    -- 2 
+    local command = nil
+
+    if(Current.StartupProject == nil) then
+        command = string.format("!start cmd /K dotnet run -c %s",Current.BuildConfiguration)
+        -- command = string.format("!start dotnet run -c %s",Current.BuildConfiguration)
+    else
+        if(Current.ProjectProfile == nil) then
+            command = string.format("!start cmd /K dotnet run --project %s -c %s",Current.StartupProject,Current.BuildConfiguration)
+        else
+            command = string.format("!start cmd /K dotnet run --project %s --launch-profile %s -c %s",Current.StartupProject,Current.ProjectProfile,Current.BuildConfiguration)
+        end
+    end
+    -- TODO: Try to open in new window
+    vim.cmd(command)
+    --local _ = vim.fn.jobstart(command,{
+        --on_stderr = on_event,
+        --on_stdout = on_event,
+        --on_exit = on_event,
+        --stdout_buffered = true,
+        --stderr_buffered = true,
+    --})
 end
 
 return SolutionManager

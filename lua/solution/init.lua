@@ -81,13 +81,12 @@ solution.setup = function(config)
     vim.api.nvim_create_user_command("SelectWaringDisplay"      , solution.SelectWaringDisplay      , {desc = "Select if compilation warnings are visible" } )
     vim.api.nvim_create_user_command("SelectTest"               , solution.SetTest                  , {desc = "Select a test for debug"                    } )
     vim.api.nvim_create_user_command("ExecuteTest"              , solution.TestSelected             , {desc = "Select a test for debug"                    } )
-    vim.api.nvim_create_user_command("LaunchProject"            , "!dotnet run<CR>"                 , {desc = "Launch a project"                           } )
+    vim.api.nvim_create_user_command("LaunchSolution"            ,solution.LaunchSolution           , {desc = "Launch the solution"                        } )
     vim.api.nvim_create_user_command("ListProjectProfiles"      , solution.ListProjectProfiles      , {desc = "Launch a project"                           } )
     vim.api.nvim_create_user_command("CompileSolution"          , solution.Compile                  , {desc = "Compiles the currently loaded solution"     } )
     -- Execute test in debug mode
     vim.api.nvim_create_user_command("DebugTest"           , function() TestManager.DebugTest(TestFunctionName) end          , {desc = "Select a test for debug"                    } )
 
-    --vim.api.nvim_create_user_command("LaunchProject"       , function() Project.LaunchProject(nil,"main")  end               , {desc = "Launch a project"                    } )
 
 
     --Generate the cache directory.
@@ -129,6 +128,10 @@ end
 
 solution.Compile = function()
     SolutionManager.CompileSolution()
+end
+
+solution.LaunchSolution = function()
+    SolutionManager.Launch()
 end
 -----------------------------------------------------------------------------
 
