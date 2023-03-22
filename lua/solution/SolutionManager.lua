@@ -289,6 +289,7 @@ SolutionManager.Launch = function()
     -- 2 
     local command = nil
 
+    -- TODO: Currently we only have windows commands. Also take care linux commands.
     if(Current.StartupProject == nil) then
         command = string.format("!start cmd /K dotnet run -c %s",Current.BuildConfiguration)
         -- command = string.format("!start dotnet run -c %s",Current.BuildConfiguration)
