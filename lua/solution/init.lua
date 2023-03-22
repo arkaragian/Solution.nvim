@@ -4,7 +4,6 @@ local solution = {}
 
 --The modules that we will be using.
 local Path = require("solution.path")
-local Parser = require("solution.parser")
 local win = require("solution.window")
 local SolutionParser = require("solution.SolutionParser")
 local SolutionManager = require("solution.SolutionManager")
@@ -446,7 +445,6 @@ solution.FindAndLoadSolution = function(options)
         -- Parse Solution
         SolutionManager.Solution = SolutionParser.ParseSolution(filename)
         CacheManager.SetupCache(SolutionManager.Solution.SolutionPath)
-        filenameSLN = filename
         vim.notify("Loaded "..filename,vim.log.levels.INFO, {title="Solution.nvim"})
     end
 
@@ -463,11 +461,6 @@ solution.PerformCommand = function(command,options)
     solution.FindAndLoadSolution(options)
     if not filenameSLN then
         vim.notify("No project or solution detected.",vim.log.levels.ERROR, {title="Solution.nvim"})
-        return
-    end
-
-    if (command == "build") then
-        solution.CompileByFilename(filenameSLN,options)
         return
     end
 
