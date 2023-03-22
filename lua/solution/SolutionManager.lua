@@ -57,6 +57,7 @@ SolutionManager.SelectBuildConfiguration = function()
     for _,v in ipairs(SolutionManager.Solution.SolutionConfigurations) do
         if(not hash[v[1]]) then
             hash[v[1]] = true
+            table.insert(items,v[1])
         end
     end
 
