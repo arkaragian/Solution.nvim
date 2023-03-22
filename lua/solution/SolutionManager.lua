@@ -66,6 +66,7 @@ SolutionManager.SelectBuildConfiguration = function()
             return
         end
         Current.BuildConfiguration = item
+        -- TODO: Store to cache
     end
 
     local opts = {
@@ -108,11 +109,40 @@ SolutionManager.SelectBuildPlatform = function()
             return
         end
         Current.BuildPlatform = item
+        -- TODO: Store to cache
     end
 
     local opts = {
         prompt = string.format("Select Platform for [%s] Configuration [%s]:",SolutionManager.Solution.SolutionPath,Current.BuildConfiguration)
     }
+    vim.ui.select(items,opts,SelectionHandler)
+end
+
+SolutionManager.SelectStartupProject = function()
+    if(SolutionManager.Solution == nil) then
+            return
+    end
+
+    local items = {
+    }
+
+    -- Projects are passed in order
+    for _,v in ipairs(SolutionManager.Solution.Projects) do
+        table.insert(items,v.Name)
+    end
+
+    local SelectionHandler = function(item,_) -- Discard index
+        if not item then
+            return
+        end
+        Current.StartupProject= item
+        -- TODO: Store to cache
+    end
+
+    local opts = {
+        prompt = string.format("Select Startup Project [%s]:",SolutionManager.Solution.SolutionPath)
+    }
+
     vim.ui.select(items,opts,SelectionHandler)
 end
 
