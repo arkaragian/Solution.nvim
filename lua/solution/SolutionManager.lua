@@ -15,7 +15,8 @@ local Current = {
     BuildConfiguration = nil,
     BuildPlatform = nil,
     StartupProject = nil,
-    ProjectProfile = nil
+    StartupLaunchProfile = nil,
+    OutputLocations = nil
 }
 
 
@@ -36,6 +37,14 @@ end
 
 SolutionManager.SetStartupProject = function(ProjectName)
     Current.StartupProject = ProjectName
+end
+
+SolutionManager.HandleCacheData = function(CacheData)
+    for k,_ in pairs(Current) do
+        if(CacheData[k] ~= nil) then
+            Current[k] = CacheData[k]
+        end
+    end
 end
 
 
@@ -66,7 +75,9 @@ SolutionManager.SelectBuildConfiguration = function()
             return
         end
         Current.BuildConfiguration = item
-        -- TODO: Store to cache
+        --When we change the build configuration and build platform the outouts are invalid
+        Current.OutputLocations = nil
+        CacheManager.WriteCacheData(SolutionManager.Solution.SolutionPath,Current)
     end
 
     local opts = {
@@ -109,7 +120,8 @@ SolutionManager.SelectBuildPlatform = function()
             return
         end
         Current.BuildPlatform = item
-        -- TODO: Store to cache
+        Current.OutputLocations = nil
+        CacheManager.WriteCacheData(SolutionManager.Solution.SolutionPath,Current)
     end
 
     local opts = {
@@ -136,7 +148,7 @@ SolutionManager.SelectStartupProject = function()
             return
         end
         Current.StartupProject= item
-        -- TODO: Store to cache
+        CacheManager.WriteCacheData(SolutionManager.Solution.SolutionPath,Current)
     end
 
     local opts = {
@@ -149,7 +161,7 @@ end
 
 SolutionManager.DisplayOutputs = function()
 
-    if(SolutionManager.OutputLocations == nil) then
+    if(Current.OutputLocations == nil) then
         vim.notify("No outputs loaded, nothing to display",vim.log.levels.WARN,{title = "Solution.nvim"})
         return
     end
@@ -162,7 +174,7 @@ SolutionManager.DisplayOutputs = function()
     --window.SetFiletype("lua")
 
     --print(str)
-    for _,v in pairs(SolutionManager.OutputLocations) do
+    for _,v in pairs(Current.OutputLocations) do
         window.AddLine(string.format("%s -> %s",v.Project,v.OutputLocation))
     end
 end
@@ -190,7 +202,7 @@ SolutionManager.CompileSolution = function()
     local errors = 0
     local warnings = 0
 
-    SolutionManager.OutputLocations = nil
+    Current.OutputLocations = nil
 
 
     local CompileOutputWindow = win.new(" Compiling " .. SolutionManager.Solution.SolutionPath .. " ")
@@ -264,9 +276,9 @@ SolutionManager.CompileSolution = function()
             else
                 vim.cmd.cclose()
             end
-            SolutionManager.OutputLocations = CurrentOutputLocations
-            --Store ouput locations to cache
-            CacheManager.SetSolutionOutputs(SolutionManager.Solution.SolutionPath,CurrentOutputLocations)
+            --SolutionManager.OutputLocations = CurrentOutputLocations
+            Current.OutputLocations = CurrentOutputLocations
+            CacheManager.WriteCacheData(SolutionManager.Solution.SolutionPath,Current)
         end
     end
 
@@ -294,10 +306,10 @@ SolutionManager.Launch = function()
         command = string.format("!start cmd /K dotnet run -c %s",Current.BuildConfiguration)
         -- command = string.format("!start dotnet run -c %s",Current.BuildConfiguration)
     else
-        if(Current.ProjectProfile == nil) then
+        if(Current.StartupLaunchProfile== nil) then
             command = string.format("!start cmd /K dotnet run --project %s -c %s",Current.StartupProject,Current.BuildConfiguration)
         else
-            command = string.format("!start cmd /K dotnet run --project %s --launch-profile %s -c %s",Current.StartupProject,Current.ProjectProfile,Current.BuildConfiguration)
+            command = string.format("!start cmd /K dotnet run --project %s --launch-profile %s -c %s",Current.StartupProject,Current.StartupLaunchProfile,Current.BuildConfiguration)
         end
     end
     -- TODO: Try to open in new window
