@@ -78,6 +78,7 @@ solution.setup = function(config)
     vim.api.nvim_create_user_command("SelectBuildConfiguration" , solution.SelectBuildConfiguration , {desc = "Select Active Build Configuration"          } )
     vim.api.nvim_create_user_command("SelectPlatform"           , solution.SelectBuildPlatform      , {desc = "Select Active Build Platform"               } )
     vim.api.nvim_create_user_command("SelectWaringDisplay"      , solution.SelectWaringDisplay      , {desc = "Select if compilation warnings are visible" } )
+    vim.api.nvim_create_user_command("SelectStartupProject"     , solution.SelectStartupProject     , {desc = "Select the solution startup project"        } )
     vim.api.nvim_create_user_command("SelectTest"               , solution.SetTest                  , {desc = "Select a test for debug"                    } )
     vim.api.nvim_create_user_command("ExecuteTest"              , solution.TestSelected             , {desc = "Select a test for debug"                    } )
     vim.api.nvim_create_user_command("LaunchSolution"            ,solution.LaunchSolution           , {desc = "Launch the solution"                        } )
@@ -118,6 +119,10 @@ end
 
 solution.SelectBuildPlatform = function()
     SolutionManager.SelectBuildPlatform()
+end
+
+solution.SelectStartupProject = function()
+    SolutionManager.SelectStartupProject()
 end
 
 solution.ListProjectProfiles = function()
@@ -448,11 +453,8 @@ solution.FindAndLoadSolution = function(options)
         vim.notify("Loaded "..filename,vim.log.levels.INFO, {title="Solution.nvim"})
     end
 
-    -- Here we have:
-    -- 1) found and loaded the solution in memory.
-    -- 2) Setup our cache if the solution has neven been encountered before.
-    -- Now we only need to load the output locations
-    SolutionManager.OutputLocations = CacheManager.GetSolutionOutputs(SolutionManager.Solution.SolutionPath)
+    local CacheData = CacheManager.ReadCacheData(SolutionManager.Solution.SolutionPath)
+    SolutionManager.HandleCacheData(CacheData)
 end
 
 
