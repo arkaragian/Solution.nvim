@@ -177,7 +177,7 @@ CacheManager.ReadCacheData = function(SolutionPath)
     file:close()
 
     if(json ~= nil) then
-        vim.notify("Cache Data Loaded",vim.log.levels.WARN,{title = "Solution.nvim"})
+        --vim.notify("Cache Data Loaded",vim.log.levels.INFO,{title = "Solution.nvim"})
         return json
     end
 end
