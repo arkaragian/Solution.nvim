@@ -364,7 +364,19 @@ SolutionManager.GetCSProgram= function()
     if(Current.OutputLocations == nil) then
         return csProgram
     elseif(#Current.OutputLocations> 1) then
-        -- We have more than one ouptut location. Ask the user to select one.
+        -- We have more than one ouptut location. If we have defined a startup project then
+        -- execute that. If not then then ask the user what to execute.
+        if(Current.StartupProject ~= nil) then
+            for i,v in ipairs(Current.OutputLocations) do
+                if(Current.OutputLocations[i].Project == Current.StartupProject) then
+                    csProgram = Current.OutputLocations[i].OutputLocation
+                    return csProgram
+                end
+            end
+        end
+
+
+        -- Ask the user to select one.
         local opts = {
             prompt = "Select Output to Debug:"
         }
