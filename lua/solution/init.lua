@@ -408,11 +408,11 @@ solution.FindAndLoadSolution = function(options)
         SolutionManager.Solution = SolutionParser.ParseSolution(filename)
         CacheManager.SetupCache(SolutionManager.Solution.SolutionPath)
         vim.notify("Loaded "..filename,vim.log.levels.INFO, {title="Solution.nvim"})
-    end
 
-    local CacheData = CacheManager.ReadCacheData(SolutionManager.Solution.SolutionPath)
-    if(CacheData ~= nil) then
-        SolutionManager.HandleCacheData(CacheData)
+        local CacheData = CacheManager.ReadCacheData(SolutionManager.Solution.SolutionPath)
+        if(CacheData ~= nil) then
+            SolutionManager.HandleCacheData(CacheData)
+        end
     end
 end
 

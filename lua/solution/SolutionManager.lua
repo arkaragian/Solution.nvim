@@ -40,10 +40,8 @@ SolutionManager.SetStartupProject = function(ProjectName)
 end
 
 SolutionManager.HandleCacheData = function(CacheData)
-    for k,_ in pairs(Current) do
-        if(CacheData[k] ~= nil) then
-            Current[k] = CacheData[k]
-        end
+    for k,_ in pairs(CacheData) do
+        Current[k] = CacheData[k]
     end
 end
 
