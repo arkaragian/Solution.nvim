@@ -158,6 +158,36 @@ SolutionManager.SelectStartupProject = function()
     vim.ui.select(items,opts,SelectionHandler)
 end
 
+SolutionManager.DisplayExecutionScheme = function()
+
+    if(Current.OutputLocations == nil) then
+        vim.notify("No outputs loaded, nothing to display",vim.log.levels.WARN,{title = "Solution.nvim"})
+        return
+    end
+
+    local window
+    if(SolutionManager.Solution~= nil) then
+        window = win.new(" Current Execution Scheme ")
+    end
+    window.PaintWindow()
+    window.SetFiletype("lua")
+
+    local str = vim.inspect(Current)
+    --TODO: This is the same code that displays a solution. Maybe abstract this away
+
+    local i = 0
+    local prev = 0
+    while(true) do
+        i,_ = string.find(str,"\n",i+1)
+        if(i == nil) then
+            break
+        end
+        local line = string.sub(str,prev+1,i-1)
+        window.AddLine(line)
+        prev = i
+    end
+end
+
 
 SolutionManager.DisplayOutputs = function()
 

@@ -75,6 +75,7 @@ solution.setup = function(config)
     vim.api.nvim_create_user_command("LoadSolution"             , solution.LoadSolution             , {desc = "Loads a solution in memory"                 } )
     vim.api.nvim_create_user_command("DisplaySolution"          , solution.DisplaySolution          , {desc = "Displays the loaded solution"               } )
     vim.api.nvim_create_user_command("DisplayOutputs"           , solution.DisplayOutputs           , {desc = "Displays the loaded solution"               } )
+    vim.api.nvim_create_user_command("DisplayExecutionScheme"   , solution.DisplayExecutionScheme   , {desc = "Displays the loaded solution"               } )
     vim.api.nvim_create_user_command("SelectBuildConfiguration" , solution.SelectBuildConfiguration , {desc = "Select Active Build Configuration"          } )
     vim.api.nvim_create_user_command("SelectPlatform"           , solution.SelectBuildPlatform      , {desc = "Select Active Build Platform"               } )
     vim.api.nvim_create_user_command("SelectWaringDisplay"      , solution.SelectWaringDisplay      , {desc = "Select if compilation warnings are visible" } )
@@ -120,6 +121,10 @@ end
 
 solution.DisplayOutputs = function()
     SolutionManager.DisplayOutputs()
+end
+
+solution.DisplayExecutionScheme = function()
+    SolutionManager.DisplayExecutionScheme()
 end
 
 solution.SelectBuildConfiguration = function()
