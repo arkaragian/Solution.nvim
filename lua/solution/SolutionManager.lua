@@ -145,6 +145,8 @@ SolutionManager.SelectStartupProject = function()
             return
         end
         Current.StartupProject= item
+        -- When we change the startup project we need to reses the launch profile
+        Current.StartupLaunchProfile = nil
         CacheManager.WriteCacheData(SolutionManager.Solution.SolutionPath,Current)
     end
 
