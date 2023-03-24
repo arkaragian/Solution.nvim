@@ -3,6 +3,8 @@
 --See https://paulwatt526.github.io/wattageTileEngineDocs/luaOopPrimer.html
 --See https://www.2n.pl/blog/how-to-write-neovim-plugins-in-lua
 local win = require("solution.window")
+local osutils = require("solution.osutils")
+local path = require("solution.path")
 
 local Parser = require("solution.parser")
 local CacheManager = require("solution.CacheManager")
@@ -330,10 +332,20 @@ SolutionManager.Launch = function()
         command = string.format("!start cmd /K dotnet run -c %s",Current.BuildConfiguration)
         -- command = string.format("!start dotnet run -c %s",Current.BuildConfiguration)
     else
+
+        --From the startup project locate the project path
+        print("Locating path for startup project: "..Current.StartupProject)
+        local thePath = nil
+        for _,v in ipairs(SolutionManager.Solution.Projects) do
+            if(Current.StartupProject== v.Name) then
+                thePath = path.GetParrentDirectory(SolutionManager.Solution.SolutionPath,osutils.seperator()) .. osutils.seperator() .. v.RelPath
+                break
+            end
+        end
         if(Current.StartupLaunchProfile== nil) then
-            command = string.format("!start cmd /K dotnet run --project %s -c %s",Current.StartupProject,Current.BuildConfiguration)
+            command = string.format("!start cmd /K dotnet run --project %s -c %s",thePath,Current.BuildConfiguration)
         else
-            command = string.format("!start cmd /K dotnet run --project %s --launch-profile %s -c %s",Current.StartupProject,Current.StartupLaunchProfile,Current.BuildConfiguration)
+            command = string.format("!start cmd /K dotnet run --project %s --launch-profile %s -c %s",thePath,Current.StartupLaunchProfile,Current.BuildConfiguration)
         end
     end
     -- TODO: Try to open in new window
