@@ -95,6 +95,15 @@ solution.setup = function(config)
     SolutionManager.SetBuildConfiguration(SolutionConfig.DefaultBuildConfiguration)
     SolutionManager.SetBuildPlatform(SolutionConfig.DefaultBuildPlatform)
 
+    --Setup autocommand to autoload the solution
+    local SolutionNvimSolutionAutoLoader = vim.api.nvim_create_augroup("SolutionNvimSolutionAutoLoader", { clear = true })
+
+    vim.api.nvim_create_autocmd("BufEnter", {
+        pattern = {"*.cs,*.csproj,*.sln"},
+        --command = solution.LoadSolution,
+        callback = solution.LoadSolution,
+        group = SolutionNvimSolutionAutoLoader,
+    })
 end
 
 -----------------------------------------------------------------------------
