@@ -323,4 +323,60 @@ SolutionManager.Launch = function()
     --})
 end
 
+SolutionManager.GetCSProgram= function()
+    local csProgram = nil
+    if(Current.OutputLocations == nil) then
+        return csProgram
+    elseif(#Current.OutputLocations> 1) then
+        -- We have more than one ouptut location. Ask the user to select one.
+        local opts = {
+            prompt = "Select Output to Debug:"
+        }
+
+        local Projects = {}
+        local maxLeftLength = 1
+        local maxRightLength = 1
+
+        -- Iterate once through the results to find the results dimensions.
+        -- We want to make the results easier to select so we need to format
+        -- them correctly
+        for _,v in ipairs(Current.OutputLocations) do
+            --maxLeftLength  = math.max(maxLeftLength,string.len(v[1]))
+            --maxRightLength = math.max(maxRightLength,string.len(v[2]))
+
+            maxLeftLength  = math.max(maxLeftLength,string.len(v.Project))
+            maxRightLength = math.max(maxRightLength,string.len(v.OutputLocation))
+        end
+
+        -- Generate the formated results
+        for i,v in ipairs(Current.OutputLocations) do
+            -- Max field length is 99. Don't know why
+            local formatProvider
+            -- The right length will always be bigger than the leeft lenght
+            -- and almost always bigger than 99 characters.
+            if(maxLeftLength > 99) then
+                formatProvider = "%s ----> %s"
+            else
+                formatProvider = "%-"..maxLeftLength.."s ----> %s"
+            end
+            local s2 = string.format(formatProvider,v.Project,v.OutputLocation)
+            Projects[i] = s2
+        end
+
+        -- Present to the user for selection
+        vim.ui.select(Projects,opts,function(item,index)
+            if not item then
+                csProgram =Current.OutputLocations[1].OutputLocation
+            else
+                csProgram = Current.OutputLocations[index].OutputLocation
+            end
+        end)
+    else
+        --return vim.fn.input('Path to dll: ', locs[1][2], 'file') -- Nothing selected set the first input
+        csProgram = Current.OutputLocations[1].OutputLocation
+    end
+
+    return csProgram
+end
+
 return SolutionManager
