@@ -8,6 +8,7 @@ local path = require("solution.path")
 
 local Parser = require("solution.parser")
 local CacheManager = require("solution.CacheManager")
+local Project = require("solution.Project")
 
 local SolutionManager = {}
 
@@ -357,6 +358,80 @@ SolutionManager.Launch = function()
         --stdout_buffered = true,
         --stderr_buffered = true,
     --})
+end
+
+SolutionManager.DisplayStartupProjectProfiles = function()
+    local startupProjectPath = nil
+    local filename = nil
+    if(Current.StartupProject == nil) then
+        vim.notify("No startup project defined.",vim.log.levels.ERROR,{title="Solution.nvim"})
+        return
+    end
+    for _,v in ipairs(SolutionManager.Solution.Projects) do
+        if(Current.StartupProject == v.Name) then
+            startupProjectPath = path.GetParrentDirectory(SolutionManager.Solution.SolutionPath,osutils.seperator()) .. osutils.seperator() .. v.RelPath
+            filename = path.GetParrentDirectory(startupProjectPath,osutils.seperator()) .. osutils.seperator() .."Properties" .. osutils.seperator() .. "launchSettings.json"
+            break
+        end
+    end
+
+    local f = io.open(filename,"r")
+    local jsonStr = f:read("*a")
+    local json = vim.json.decode(jsonStr)
+
+    local window
+    if(SolutionManager.Solution~= nil and Current.StartupProject ~= nil) then
+        window = win.new(" " .. Current.StartupProject .. " Launch Profiles ")
+    end
+
+    window.PaintWindow()
+    window.SetFiletype("lua")
+
+    local str = vim.inspect(json)
+    --TODO: This is the same code that displays a solution. Maybe abstract this away
+
+    local i = 0
+    local prev = 0
+    while(true) do
+        i,_ = string.find(str,"\n",i+1)
+        if(i == nil) then
+            break
+        end
+        local line = string.sub(str,prev+1,i-1)
+        window.AddLine(line)
+        prev = i
+    end
+
+end
+
+SolutionManager.SelectLaunchProfile = function()
+    local startupProjectPath = nil
+    if(Current.StartupProject == nil) then
+        vim.notify("No startup project defined.",vim.log.levels.ERROR,{title="Solution.nvim"})
+        return
+    end
+    for _,v in ipairs(SolutionManager.Solution.Projects) do
+        if(Current.StartupProject == v.Name) then
+            startupProjectPath = path.GetParrentDirectory(SolutionManager.Solution.SolutionPath,osutils.seperator()) .. osutils.seperator() .. v.RelPath
+            break
+        end
+    end
+    local Profiles = Project.GetProjectProfiles(startupProjectPath)
+
+
+    local SelectionHandler = function(item,_) -- Discard index
+        if not item then
+            return
+        end
+        Current.StartupLaunchProfile = item
+        CacheManager.WriteCacheData(SolutionManager.Solution.SolutionPath,Current)
+    end
+
+    local opts = {
+        prompt = string.format("Select Launch Profile for [%s]:",Current.StartupProject)
+    }
+
+    vim.ui.select(Profiles,opts,SelectionHandler)
 end
 
 SolutionManager.GetCSProgram= function()
