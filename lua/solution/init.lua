@@ -73,6 +73,7 @@ solution.setup = function(config)
     vim.api.nvim_create_user_command("DisplaySolution"          , solution.DisplaySolution          , {desc = "Displays the loaded solution"               } )
     vim.api.nvim_create_user_command("DisplayOutputs"           , solution.DisplayOutputs           , {desc = "Displays the loaded solution"               } )
     vim.api.nvim_create_user_command("DisplayExecutionScheme"   , solution.DisplayExecutionScheme   , {desc = "Displays the loaded solution"               } )
+    vim.api.nvim_create_user_command("DisplayProjectProfiles"   , solution.DisplayProjectProfiles   , {desc = "Displays the loaded solution"               } )
     vim.api.nvim_create_user_command("SelectBuildConfiguration" , solution.SelectBuildConfiguration , {desc = "Select Active Build Configuration"          } )
     vim.api.nvim_create_user_command("SelectPlatform"           , solution.SelectBuildPlatform      , {desc = "Select Active Build Platform"               } )
     vim.api.nvim_create_user_command("SelectWaringDisplay"      , solution.SelectWaringDisplay      , {desc = "Select if compilation warnings are visible" } )
@@ -80,7 +81,6 @@ solution.setup = function(config)
     vim.api.nvim_create_user_command("SelectTest"               , solution.SetTest                  , {desc = "Select a test for debug"                    } )
     vim.api.nvim_create_user_command("ExecuteTest"              , solution.TestSelected             , {desc = "Select a test for debug"                    } )
     vim.api.nvim_create_user_command("LaunchSolution"            ,solution.LaunchSolution           , {desc = "Launch the solution"                        } )
-    vim.api.nvim_create_user_command("ListProjectProfiles"      , solution.ListProjectProfiles      , {desc = "Launch a project"                           } )
     vim.api.nvim_create_user_command("CompileSolution"          , solution.Compile                  , {desc = "Compiles the currently loaded solution"     } )
     -- Execute test in debug mode
     vim.api.nvim_create_user_command("DebugTest"           , function() TestManager.DebugTest(TestFunctionName) end          , {desc = "Select a test for debug"                    } )
@@ -124,6 +124,10 @@ solution.DisplayExecutionScheme = function()
     SolutionManager.DisplayExecutionScheme()
 end
 
+solution.DisplayProjectProfiles = function()
+    SolutionManager.DisplayStartupProjectProfiles()
+end
+
 solution.SelectBuildConfiguration = function()
     SolutionManager.SelectBuildConfiguration()
 end
@@ -134,11 +138,6 @@ end
 
 solution.SelectStartupProject = function()
     SolutionManager.SelectStartupProject()
-end
-
-solution.ListProjectProfiles = function()
-    local ppath = SolutionParser.GetProjectPath(SolutionManager.Solution,1)
-    Project.GetProjectProfiles(ppath)
 end
 
 solution.Compile = function()
