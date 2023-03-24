@@ -454,7 +454,9 @@ solution.FindAndLoadSolution = function(options)
     end
 
     local CacheData = CacheManager.ReadCacheData(SolutionManager.Solution.SolutionPath)
-    SolutionManager.HandleCacheData(CacheData)
+    if(CacheData ~= nil) then
+        SolutionManager.HandleCacheData(CacheData)
+    end
 end
 
 
