@@ -21,7 +21,7 @@ Project.ParseProject = function(filename)
     return handler.root
 end
 
-Project.GetProjectProfiles = function(ProjectPath)
+Project.GetProjectProfileNames = function(ProjectPath)
     --From the project path find the project "Properties" directory
     --Decode the Json and list the tiems alphabeticaly(?)
     local pd = path.GetParrentDirectory(ProjectPath,os.seperator())
@@ -48,12 +48,11 @@ Project.GetProjectProfiles = function(ProjectPath)
 
     table.sort(ordered_keys)
     -- We now have numbers for our keys
-    for i = 1, #ordered_keys do
-        local k  = ordered_keys[i]
-        local v = jsonTab.profiles[k]
-        P(k)
-        P(v)
-    end
+    --for i = 1, #ordered_keys do
+    --    local k  = ordered_keys[i]
+    --    local v = jsonTab.profiles[k]
+    --end
+    return ordered_keys
 end
 
 Project.GetArgStringFromProfile = function(profile)
