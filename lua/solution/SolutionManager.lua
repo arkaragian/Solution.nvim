@@ -23,10 +23,6 @@ local Current = {
 -- The current in memory solution or project
 SolutionManager.Solution = nil
 
--- The output locations of the executales
-SolutionManager.OutputLocations = nil
-
-
 SolutionManager.SetBuildConfiguration = function(BuildConfiguration)
     Current.BuildConfiguration = BuildConfiguration
 end

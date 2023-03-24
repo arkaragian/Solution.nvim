@@ -29,9 +29,6 @@ local TestFunctionName = nil
 -- The project file that contains the test.
 local TestProject = nil
 
--- The locations of the output binaries
-local OutputLocations = nil
-
 --Could be used to configure the parser.
 --local CompilerVersion = nil
 
