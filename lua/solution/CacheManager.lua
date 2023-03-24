@@ -167,7 +167,6 @@ CacheManager.ReadCacheData = function(SolutionPath)
     local file = io.open(location, "r")
 
     if(file == nil) then
-        vim.notify("Could not read cache file",vim.log.levels.WARN,{title = "Solution.nvim"})
         return nil
     end
 

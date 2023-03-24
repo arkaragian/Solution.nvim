@@ -32,7 +32,7 @@ SolutionManager.SetBuildConfiguration = function(BuildConfiguration)
 end
 
 SolutionManager.SetBuildPlatform = function(BuildPlatform)
-    Current.BuildPlatform= BuildPlatform 
+    Current.BuildPlatform= BuildPlatform
 end
 
 SolutionManager.SetStartupProject = function(ProjectName)
