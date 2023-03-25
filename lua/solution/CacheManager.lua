@@ -1,4 +1,28 @@
+-- This module handles the reading ana writing of cache data.
+-- The cache is structired as follows
+-- RootCacheDirectory
+-- |
+-- |- solution.log
+-- |
+-- |- hash1
+-- |    |
+-- |    |- index.json
+-- |    |- CacheData.json
+-- |
+-- |- hash2
+--      |
+--      |- index.json
+--      |- CacheData.json
+--
+-- Each hash is produced by a hacsh code function with input the path of the solution file
+-- thus ensuring that each solution location has it's own data.
+--
+-- Inside the directory there exists a file named index.json. This file stores some
+-- basic data for the solution. Such as the solution path. Based on that information a
+-- hash colision is detected. If there is a colition then the next directory that is
+-- used is the <HashCode>_1 <HashCode>_2 ... <HashCode>_n
 local OSUtils = require("solution.osutils")
+local log = require("solution.log")
 
 local CacheManager = {}
 
@@ -7,29 +31,17 @@ local State = {
 }
 
 
--- All persitent data is stored inside the cache directory. Each solution file has it's own
--- directory where any persistent data for this solution is stored. We chose a directory and
--- not a file because we want to be flexible on what we can store.
---
--- The directory where the data is stored is calculated based on a hash function. Inside the
--- directory there exists a file named index.json. This file stores some basic data for the
--- solution. Such as the solution path and modification dates. Based on that information a
--- hash colision is detected. If there is a colition then the next directory that is used is
--- the <HashCode>_1 <HashCode>_2 ... <HashCode>_n
-
-
 CacheManager.CacheRootLocation = vim.fn.stdpath("cache").. OSUtils.seperator() .. "solution.nvim"
 
 
+--- Provides a path inside the cache directory of the given solution path.
 CacheManager.ProvidePath = function(SolutionPath,file)
     return CacheManager.CacheRootLocation .. OSUtils.seperator() .. CacheManager.HashString(SolutionPath) .. OSUtils.seperator() .. file
 end
---CacheManager.CacheRootLocation = function()
---    local cacheRoot = vim.fn.stdpath("cache").. OSUtils.seperator() .. "solution.nvim"
---    return cacheRoot
---end
 
 
+--- Creates the cache directory. This function should produce a result when it is
+--the first time that this plugin is activated or when 
 CacheManager.CreateCacheRoot = function()
     local cacheDirectory = CacheManager.CacheRootLocation
     local r = vim.fn.mkdir(cacheDirectory,"p")
@@ -38,8 +50,21 @@ CacheManager.CreateCacheRoot = function()
         print("Failed to create directory: "..cacheDirectory)
         return
     end
+    -- Create the log file
+    CacheManager.LogInit()
     print("Cache Directory located at:"..cacheDirectory)
     State.CacheRootInitialized = true
+end
+
+CacheManager.LogInit = function()
+    local filename = CacheManager.CacheRootLocation .. OSUtils.seperator() .. "solution.log"
+    local d = os.date("%d-%b-%Y %H:%M:%S",os.time())
+    local s = string.format("[%s][%s] %s","INFO",d,"Log initialised\n")
+    local f = io.open(filename,"w")
+    if(f ~= nil) then
+        f:write(s)
+        f:close()
+    end
 end
 
 --- Sets up the cache for the the given solution path
@@ -52,10 +77,10 @@ CacheManager.SetupCache = function(SolutionPath)
     local location = CacheManager.CacheRootLocation .. OSUtils.seperator() .. CacheManager.HashString(SolutionPath)
 
     local r = vim.fn.mkdir(location,"p")
-    print(string.format("Creation result for deiractory %s is %d",location,r))
+    --log.information(string.format("Creation result for directory %s is %d",location,r))
     -- Directory already exists. Check if this is really ours or we are experiencing a colision
     if(r == 1) then
-        print("Directory:".. location .." exists")
+        --print("Directory:".. location .." exists")
         local tab = CacheManager.ReadIndexFile(location)
         if (tab == nil) then
             --No index file exists. It appears that the directory was just created!
@@ -65,9 +90,10 @@ CacheManager.SetupCache = function(SolutionPath)
         if tab.SolutionPath == SolutionPath then
             -- We are on the corect path and the solution is already setup nothing to do here
             print("Index verified nothing more to do")
+            log.information(string.format("Index verified for %s nothing more to do",tab.SolutionPath))
             return
         end
-        print("Colision Detected!")
+        --print("Colision Detected!")
         -- We have a colision. Try the next name with the postfix with a loop
         local posfixNumber = 1
         local newLoc = location .. "_"..posfixNumber
@@ -82,6 +108,7 @@ CacheManager.SetupCache = function(SolutionPath)
                 tab = CacheManager.ReadIndexFile(newLoc)
             end
         until(tab.SolutionPath == SolutionPath)
+        log.information(string.format("After colision resolution, index for %s verified at %s",tab.SolutionPath,newLoc))
     end
     -- Windows code 0 is sucess and 1 if the directory aloready exists
     -- There was sucess creating the directory.
@@ -92,23 +119,8 @@ CacheManager.SetupCache = function(SolutionPath)
     print("Failed to setup cache directory: "..location)
 end
 
---- Returns the cache directory location for the given solution path.
--- @param SolutionPath The path of the solution
---CacheManager.GetCacheLocation = function(SolutionPath)
---    local startLocation = CacheManager.CacheRootLocation() .. OSUtils.seperator() .. CacheManager.HashString(SolutionPath)
---    -- Read the file in the result and check the solution path there. If it not the same this means that we have a
---    -- colision. Append a _<number> postfix and retry. If we read the correct path then return the location of this
---    -- file.
---    local indexfile = startLocation .. OSUtils.seperator() .. "index.json"
---    local f = io.open(indexfile,"r")
---    if (f==nil) then
---        -- We could not open the file we can assume that the file does not
---        -- exist and thus we can use this location for our cache.
---        return startLocation
---    end
---end
 
-
+--- Writes the index file in the cache directory
 CacheManager.WriteIndexFile = function(SolutionCacheDirectory, SolutionPath)
     local indexfile = SolutionCacheDirectory .. OSUtils.seperator() .. "index.json"
 
@@ -123,6 +135,8 @@ CacheManager.WriteIndexFile = function(SolutionCacheDirectory, SolutionPath)
     end
 end
 
+--- Read the contents of the index file for a given solution cache directory
+-- @param SolutionCacheDirectory The path for a solution cache directory
 CacheManager.ReadIndexFile = function(SolutionCacheDirectory)
     local indexfile = SolutionCacheDirectory .. OSUtils.seperator() .. "index.json"
 
@@ -137,6 +151,10 @@ CacheManager.ReadIndexFile = function(SolutionCacheDirectory)
     return jsonTab
 end
 
+
+--- Writes the cache data to the solution cache directory
+-- @param SolutionPath The path of the solution for which we are writting cache data
+-- @param CacheData A lua table that represents all the cache data that is written
 CacheManager.WriteCacheData = function(SolutionPath,CacheData)
     if(SolutionPath == nil) then
         return
@@ -158,6 +176,9 @@ CacheManager.WriteCacheData = function(SolutionPath,CacheData)
     end
 end
 
+
+--- Reads the cache data for the given solution path and returns them as a lua table
+-- @param SolutionPath The path of the solution for which we are reading cache data
 CacheManager.ReadCacheData = function(SolutionPath)
     if(SolutionPath == nil) then
         return
@@ -182,6 +203,8 @@ CacheManager.ReadCacheData = function(SolutionPath)
     end
 end
 
+--- Calculates a hash code for a given string
+--@param str The string for which we write a hash code
 CacheManager.HashString = function(str)
     local hash = 0
     --local bit32 = require("bit32")
