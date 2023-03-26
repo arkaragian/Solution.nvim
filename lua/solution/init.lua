@@ -69,19 +69,19 @@ solution.setup = function(config)
 
     solution.GetCompilerVersion()
 
-    vim.api.nvim_create_user_command("LoadSolution"             , solution.LoadSolution                , {desc = "Loads a solution in memory"                                                                   } )
-    vim.api.nvim_create_user_command("DisplaySolution"          , solution.DisplaySolution             , {desc = "Displays the loaded solution"                                                                 } )
-    vim.api.nvim_create_user_command("DisplayOutputs"           , solution.DisplayOutputs              , {desc = "Displays the .dll executables that this solution produces"                                    } )
-    vim.api.nvim_create_user_command("DisplayExecutionScheme"   , solution.DisplayExecutionScheme      , {desc = "Displays the current solution configuration and platform. Also displays the solution outputs" } )
-    vim.api.nvim_create_user_command("DisplayProjectProfiles"   , solution.DisplayStartProjectProfiles , {desc = "Displays the project profiles for the startup project"                                        } )
-    vim.api.nvim_create_user_command("SelectBuildConfiguration" , solution.SelectBuildConfiguration    , {desc = "Select Active Build Configuration"                                                            } )
-    vim.api.nvim_create_user_command("SelectPlatform"           , solution.SelectBuildPlatform         , {desc = "Select Active Build Platform"                                                                 } )
-    vim.api.nvim_create_user_command("SelectWaringDisplay"      , solution.SelectWaringDisplay         , {desc = "Select if compilation warnings populate the quickfix list"                                    } )
-    vim.api.nvim_create_user_command("SelectStartupProject"     , solution.SelectStartupProject        , {desc = "Select the solution startup project"                                                          } )
-    vim.api.nvim_create_user_command("SelectTest"               , solution.SetTest                     , {desc = "Select a test for debug"                                                                      } )
-    vim.api.nvim_create_user_command("ExecuteTest"              , solution.TestSelected                , {desc = "Select a test for debug"                                                                      } )
-    vim.api.nvim_create_user_command("LaunchSolution"           , solution.LaunchSolution              , {desc = "Launch the solution"                                                                          } )
-    vim.api.nvim_create_user_command("CompileSolution"          , solution.Compile                     , {desc = "Compiles the currently loaded solution"                                                       } )
+    vim.api.nvim_create_user_command("LoadSolution"                  , solution.LoadSolution                  , {desc = "Loads a solution in memory"                                                                   } )
+    vim.api.nvim_create_user_command("DisplaySolution"               , solution.DisplaySolution               , {desc = "Displays the loaded solution"                                                                 } )
+    vim.api.nvim_create_user_command("DisplayOutputs"                , solution.DisplayOutputs                , {desc = "Displays the .dll executables that this solution produces"                                    } )
+    vim.api.nvim_create_user_command("DisplayExecutionScheme"        , solution.DisplayExecutionScheme        , {desc = "Displays the current solution configuration and platform. Also displays the solution outputs" } )
+    vim.api.nvim_create_user_command("DisplayStartupProjectProfiles" , solution.DisplayStartupProjectProfiles , {desc = "Displays the project profiles for the startup project"                                        } )
+    vim.api.nvim_create_user_command("SelectBuildConfiguration"      , solution.SelectBuildConfiguration      , {desc = "Select Active Build Configuration"                                                            } )
+    vim.api.nvim_create_user_command("SelectPlatform"                , solution.SelectBuildPlatform           , {desc = "Select Active Build Platform"                                                                 } )
+    vim.api.nvim_create_user_command("SelectWaringDisplay"           , solution.SelectWaringDisplay           , {desc = "Select if compilation warnings populate the quickfix list"                                    } )
+    vim.api.nvim_create_user_command("SelectStartupProject"          , solution.SelectStartupProject          , {desc = "Select the solution startup project"                                                          } )
+    vim.api.nvim_create_user_command("SelectTest"                    , solution.SetTest                       , {desc = "Select a test for debug"                                                                      } )
+    vim.api.nvim_create_user_command("ExecuteTest"                   , solution.TestSelected                  , {desc = "Select a test for debug"                                                                      } )
+    vim.api.nvim_create_user_command("LaunchSolution"                , solution.LaunchSolution                , {desc = "Launch the solution"                                                                          } )
+    vim.api.nvim_create_user_command("CompileSolution"               , solution.Compile                       , {desc = "Compiles the currently loaded solution"                                                       } )
     -- Execute test in debug mode
     vim.api.nvim_create_user_command("DebugTest"           , function() TestManager.DebugTest(TestFunctionName) end          , {desc = "Select a test for debug"                    } )
 
@@ -126,7 +126,7 @@ solution.DisplayExecutionScheme = function()
     SolutionManager.DisplayExecutionScheme()
 end
 
-solution.DisplayProjectProfiles = function()
+solution.DisplayStartupProjectProfiles = function()
     SolutionManager.DisplayStartupProjectProfiles()
 end
 
