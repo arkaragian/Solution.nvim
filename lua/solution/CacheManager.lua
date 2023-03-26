@@ -58,12 +58,21 @@ end
 
 CacheManager.LogInit = function()
     local filename = CacheManager.CacheRootLocation .. OSUtils.seperator .. "solution.log"
-    local d = os.date("%d-%b-%Y %H:%M:%S",os.time())
-    local s = string.format("[%s][%s] %s","INFO",d,"Log initialised\n")
-    local f = io.open(filename,"w")
+    local f = io.open(filename,"r")
+    if (f~= nil) then
+        -- The file exists. Nothing to init
+        f:close()
+        return
+    end
+    -- The file does not exist
+    f = io.open(filename,"w")
     if(f ~= nil) then
+        local d = os.date("%d-%b-%Y %H:%M:%S",os.time())
+        local s = string.format("[%s][%s] %s","INFO",d,"Log initialised\n")
         f:write(s)
         f:close()
+    else
+        print("Could not create log file: "..filename)
     end
 end
 
