@@ -341,7 +341,7 @@ SolutionManager.Launch = function()
         local thePath = nil
         for _,v in ipairs(SolutionManager.Solution.Projects) do
             if(Current.StartupProject== v.Name) then
-                thePath = path.GetParrentDirectory(SolutionManager.Solution.SolutionPath,osutils.seperator()) .. osutils.seperator() .. v.RelPath
+                thePath = path.GetParrentDirectory(SolutionManager.Solution.SolutionPath,osutils.seperator) .. osutils.seperator .. v.RelPath
                 break
             end
         end
@@ -371,8 +371,8 @@ SolutionManager.DisplayStartupProjectProfiles = function()
     end
     for _,v in ipairs(SolutionManager.Solution.Projects) do
         if(Current.StartupProject == v.Name) then
-            startupProjectPath = path.GetParrentDirectory(SolutionManager.Solution.SolutionPath,osutils.seperator()) .. osutils.seperator() .. v.RelPath
-            filename = path.GetParrentDirectory(startupProjectPath,osutils.seperator()) .. osutils.seperator() .."Properties" .. osutils.seperator() .. "launchSettings.json"
+            startupProjectPath = path.GetParrentDirectory(SolutionManager.Solution.SolutionPath,osutils.seperator) .. osutils.seperator .. v.RelPath
+            filename = path.GetParrentDirectory(startupProjectPath,osutils.seperator) .. osutils.seperator .."Properties" .. osutils.seperator .. "launchSettings.json"
             break
         end
     end
@@ -414,7 +414,7 @@ SolutionManager.SelectLaunchProfile = function()
     end
     for _,v in ipairs(SolutionManager.Solution.Projects) do
         if(Current.StartupProject == v.Name) then
-            startupProjectPath = path.GetParrentDirectory(SolutionManager.Solution.SolutionPath,osutils.seperator()) .. osutils.seperator() .. v.RelPath
+            startupProjectPath = path.GetParrentDirectory(SolutionManager.Solution.SolutionPath,osutils.seperator) .. osutils.seperator .. v.RelPath
             break
         end
     end

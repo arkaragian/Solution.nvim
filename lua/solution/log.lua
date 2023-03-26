@@ -3,7 +3,7 @@ local OSUtils = require("solution.osutils")
 local log = {}
 
 
-log.LogLocation = vim.fn.stdpath("cache").. OSUtils.seperator() .. "solution.nvim" .. OSUtils.seperator() .. "solution.log"
+log.LogLocation = vim.fn.stdpath("cache").. OSUtils.seperator .. "solution.nvim" .. OSUtils.seperator .. "solution.log"
 
 
 log.information = function(string)

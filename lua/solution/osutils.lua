@@ -1,5 +1,15 @@
 local osutils = {}
 
+local seperator = nil
+
+if package.config:sub(1,1) == '/' then
+    seperator = '/'
+else
+    seperator = '\\'
+end
+
+
+
 
 --- Returns the current operating system
 osutils.system = function()
@@ -7,12 +17,5 @@ osutils.system = function()
 end
 
 --- Returns the seperator for the current operating system
-osutils.seperator = function()
-    if package.config:sub(1,1) == '/' then
-        return '/'
-    else
-        return '\\'
-    end
-end
-
+osutils.seperator = seperator
 return osutils

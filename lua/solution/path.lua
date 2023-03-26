@@ -119,7 +119,7 @@ Path.GetFilesByExtension = function(directory,extension)
 
     local command
     local isWin = (os.system() == "windows")
-    local sep = os.seperator()
+    local sep = os.seperator
     if(isWin) then
         -- The CMD command is: dir /b /a-d <path> lists only files or File Not Found
         -- This will list the files only Or "file not found"
@@ -158,7 +158,7 @@ Path.Directories = function(directory)
 
     local command
     local isWin = (os.system() == "windows")
-    local sep = os.seperator()
+    local sep = os.seperator
     if(isWin) then
         -- The CMD command is: dir /b /ad <path>
         -- List in bare format (name only)
@@ -239,7 +239,7 @@ Path.FindUpstreamFilesByExtension = function(extension)
         return {}
     end
     local cur_dir = vim.fn.getcwd()
-    local dir_sep = os.seperator()
+    local dir_sep = os.seperator
 
     if(cur_dir == nil) then
         return {}

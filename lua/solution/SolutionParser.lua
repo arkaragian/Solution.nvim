@@ -620,14 +620,14 @@ end
 SolutionParser.GetProjectPath = function(Solution,IndexOrName)
     local os = require("solution.osutils")
     if(type(IndexOrName) == "number") then
-        local parent = path.GetParrentDirectory(Solution.SolutionPath,os.seperator())
-        local ProjectPath = parent .. os.seperator() .. Solution.Projects[IndexOrName].RelPath
+        local parent = path.GetParrentDirectory(Solution.SolutionPath,os.seperator)
+        local ProjectPath = parent .. os.seperator .. Solution.Projects[IndexOrName].RelPath
         return ProjectPath
     end
 
     if(type(IndexOrName) == "string") then
-        local parent = path.GetParrentDirectory(Solution.SolutionPath,os.seperator())
-        local ProjectPath = parent .. os.seperator() .. Solution.Projects[1].RelPath
+        local parent = path.GetParrentDirectory(Solution.SolutionPath,os.seperator)
+        local ProjectPath = parent .. os.seperator .. Solution.Projects[1].RelPath
         return ProjectPath
     end
 end

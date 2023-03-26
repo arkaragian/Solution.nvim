@@ -24,8 +24,8 @@ end
 Project.GetProjectProfileNames = function(ProjectPath)
     --From the project path find the project "Properties" directory
     --Decode the Json and list the tiems alphabeticaly(?)
-    local pd = path.GetParrentDirectory(ProjectPath,os.seperator())
-    local lsfile = pd .. os.seperator() .. "Properties" .. os.seperator() .. "launchSettings.json"
+    local pd = path.GetParrentDirectory(ProjectPath,os.seperator)
+    local lsfile = pd .. os.seperator .. "Properties" .. os.seperator .. "launchSettings.json"
 
     local f = io.open(lsfile, "r")
     if (f == nil) then

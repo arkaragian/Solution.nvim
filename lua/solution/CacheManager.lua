@@ -31,12 +31,12 @@ local State = {
 }
 
 
-CacheManager.CacheRootLocation = vim.fn.stdpath("cache").. OSUtils.seperator() .. "solution.nvim"
+CacheManager.CacheRootLocation = vim.fn.stdpath("cache").. OSUtils.seperator .. "solution.nvim"
 
 
 --- Provides a path inside the cache directory of the given solution path.
 CacheManager.ProvidePath = function(SolutionPath,file)
-    return CacheManager.CacheRootLocation .. OSUtils.seperator() .. CacheManager.HashString(SolutionPath) .. OSUtils.seperator() .. file
+    return CacheManager.CacheRootLocation .. OSUtils.seperator .. CacheManager.HashString(SolutionPath) .. OSUtils.seperator .. file
 end
 
 
@@ -57,7 +57,7 @@ CacheManager.CreateCacheRoot = function()
 end
 
 CacheManager.LogInit = function()
-    local filename = CacheManager.CacheRootLocation .. OSUtils.seperator() .. "solution.log"
+    local filename = CacheManager.CacheRootLocation .. OSUtils.seperator .. "solution.log"
     local d = os.date("%d-%b-%Y %H:%M:%S",os.time())
     local s = string.format("[%s][%s] %s","INFO",d,"Log initialised\n")
     local f = io.open(filename,"w")
@@ -74,7 +74,7 @@ CacheManager.SetupCache = function(SolutionPath)
         print("Cache Root is not initalized doing nothing")
         return
     end
-    local location = CacheManager.CacheRootLocation .. OSUtils.seperator() .. CacheManager.HashString(SolutionPath)
+    local location = CacheManager.CacheRootLocation .. OSUtils.seperator .. CacheManager.HashString(SolutionPath)
 
     local r = vim.fn.mkdir(location,"p")
     --log.information(string.format("Creation result for directory %s is %d",location,r))
@@ -122,7 +122,7 @@ end
 
 --- Writes the index file in the cache directory
 CacheManager.WriteIndexFile = function(SolutionCacheDirectory, SolutionPath)
-    local indexfile = SolutionCacheDirectory .. OSUtils.seperator() .. "index.json"
+    local indexfile = SolutionCacheDirectory .. OSUtils.seperator .. "index.json"
 
     local indexData = {
         SolutionPath = SolutionPath,
@@ -138,7 +138,7 @@ end
 --- Read the contents of the index file for a given solution cache directory
 -- @param SolutionCacheDirectory The path for a solution cache directory
 CacheManager.ReadIndexFile = function(SolutionCacheDirectory)
-    local indexfile = SolutionCacheDirectory .. OSUtils.seperator() .. "index.json"
+    local indexfile = SolutionCacheDirectory .. OSUtils.seperator .. "index.json"
 
     local indf = io.open(indexfile,"r")
     if(indf == nil) then
