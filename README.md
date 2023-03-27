@@ -78,6 +78,7 @@ The plugin is still in early alpha stage and the design will be breaking frequen
 - [x] Ability to display the solution or the project that is loaded in memory.
 - [x] Ability to write solution files
 - [x] Automatic executable output discovery for DAP debugging.
+- [x] Persistent between project settings (using lua `vim.fn.stdpath("cache") .. "/solution.nvim",` 
 
 ## Solution `.sln` support
 Currently the plugin can parse(for the most part) the solution files. Based on
@@ -93,7 +94,8 @@ Currently the project files are parsed useing xml2lua.
 
 ## Ideas for future implementation
 Below are listed ideas of what the plugin could do. Not in order of priority.
-- [ ] Persistent between project settings (using lua `vim.fn.stdpath("cache") .. "/Solution.nvim",` 
+- [x] Support for executing the project inside nvim (currently on windows only)
+- [ ] Implement and Handle solution filters
 - [ ] Async Compile. (maybe immplement using libuv)
 - [ ] Implement a Unit test explorer
     - [ ] Add support for unit tests execution
@@ -101,4 +103,3 @@ Below are listed ideas of what the plugin could do. Not in order of priority.
 - [ ] Add support for project exclusion
 - [ ] Integration with dap modules for easier discovery of programs.
 - [ ] Add nuget package management.
-- [ ] Support for executing the project inside nvim
