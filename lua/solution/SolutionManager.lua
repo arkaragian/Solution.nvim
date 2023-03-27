@@ -265,7 +265,13 @@ SolutionManager.CompileSolution = function()
                     elseif (r ~= nil and r.type == 'W') then
                         CompileOutputWindow.AddLine(theLine,SolutionConfig.Display.RemoveCR,WarningHighlight)
                     else
-                        CompileOutputWindow.AddLine(theLine,SolutionConfig.Display.RemoveCR)
+                        -- There might be non code errors like nuget packages
+                        local match = string.match(theLine,"%serror%s")
+                        if not match then
+                            CompileOutputWindow.AddLine(theLine,SolutionConfig.Display.RemoveCR)
+                        else
+                            CompileOutputWindow.AddLine(theLine,SolutionConfig.Display.RemoveCR,ErrorHighlight)
+                        end
                     end
                     if not stringLines[theLine] then
                         stringLines[theLine] = true
