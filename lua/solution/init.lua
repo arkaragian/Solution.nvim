@@ -15,6 +15,8 @@ local CacheManager = require("solution.CacheManager")
 --                    P R I V A T E  M E M B E R S                          --
 ------------------------------------------------------------------------------
 
+--- Defines the policy that will be followed when multiple solutions are encountered
+-- in an upstream directory
 local SolutionSelectionPolicies = {
     First = "first",
     Selection = "selection"
@@ -172,11 +174,7 @@ solution.ValidateConfiguration = function(config)
             return false
         end
     end
-    -- TODO Fix this check using the enum
-    -- Validate correct values individually
-    --if(config.ProjectSelectionPolicy ~= "first" and config.ProjectSelectionPolicy ~= "selection") then
-    --    return false
-    --end
+
     local checkOk = false
     for _,v in pairs(SolutionSelectionPolicies) do
         if(config.SolutionSelectionPolicy == v) then
