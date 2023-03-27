@@ -1,15 +1,15 @@
--- Path is a central module that helps the editor localize within
--- the filesystem. It's goal is to provide functions that will help
--- us locate our solution files.
---
--- this file should be called as follows from other plugin code:
--- local Path = require("solution.path")
+-- This module parses the output of dotnet commands during compilation
 local Parser = {}
 
 local os = require("solution.osutils")
 local utils = require("solution.utils")
 
 
+--- Appends an entry to a table contains the compilation outputs if the line
+-- that is parses indicates a compilation output
+-- @param line The line that is parsed
+-- @param OutputTable The table that MAY be altered this table must contain
+-- the Project and OutputLocation keys.
 Parser.ParseOutputDirectory = function(line,OutputTable)
     local i,j = string.find(line,"->")
     if(i ~= nil and j~= nil) then
@@ -27,7 +27,7 @@ Parser.ParseOutputDirectory = function(line,OutputTable)
 end
 
 --- Indicates if a line should be added to the quickfix list
--- The lines that are added is
+-- @param line The line to be parsed
 Parser.ParseLine = function(line)
     if(type(line) ~= "string") then
         print("Input is not string. Returning nil")
@@ -43,7 +43,7 @@ Parser.ParseLine = function(line)
     -- In Lua some characters in pattern matching are considered magic. Thus
     -- they require escaping by % in order to be matched.
     local poIndex,_ = string.find(line,"%(") -- parenthesis open index
-    local cIndex,_ = string.find(line,"%,") -- parenthesis comma index
+    local cIndex,_  = string.find(line,"%,") -- parenthesis comma index
     local pcIndex,_ = string.find(line,"%)") -- parenthesis close index
 
     -- If we cannot find those characters we cannot continue
