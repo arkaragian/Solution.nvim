@@ -23,7 +23,7 @@ local Current = {
 }
 
 
--- The current in memory solution or project
+--- The current in memory solution or project
 SolutionManager.Solution = nil
 
 SolutionManager.SetBuildConfiguration = function(BuildConfiguration)
@@ -215,7 +215,12 @@ SolutionManager.CompileSolution = function()
         vim.notify("No solution loaded. Nothing to compile",vim.log.levels.ERROR, {title="Solution.nvim"})
         return
     end
-    local command = "dotnet build " .. SolutionManager.Solution.SolutionPath .. " -c " .. Current.BuildConfiguration
+    local command
+    if(Current.BuildPlatform ~= "Any CPU") then
+        command = "dotnet build " .. SolutionManager.Solution.SolutionPath .. " -c " .. Current.BuildConfiguration .. " -p:Platform="..Current.BuildPlatform
+    else
+        command = "dotnet build " .. SolutionManager.Solution.SolutionPath .. " -c " .. Current.BuildConfiguration
+    end
 
 
     -- The items to be Displayed in the quickfix list
