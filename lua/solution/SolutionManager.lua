@@ -335,34 +335,42 @@ SolutionManager.CompileSolution = function()
 end
 
 
+--- Launches the current startup project
 SolutionManager.Launch = function()
     -- In order to execute a project we need the following:
-    -- 1 The launch profile that supplies the command line arguments
-    -- 2 
+    -- 1 The startup project
+    -- 2 The launch profile that supplies the command line arguments
     local command = nil
 
     -- TODO: Currently we only have windows commands. Also take care linux commands.
     -- If no startup project is selected. Try to execute the solution
     if(Current.StartupProject == nil) then
-        local thePath = path.GetParrentDirectory(SolutionManager.Solution.SolutionPath,osutils.seperator)
-        command = string.format("!start cmd /K \"cd %s && dotnet run -c %s\"",thePath,Current.BuildConfiguration)
-        -- command = string.format("!start dotnet run -c %s",Current.BuildConfiguration)
-    else
+        SolutionManager.SelectStartupProject()
+        -- If no selection was made. Do nothing
+        if(Current.StartupProject == nil) then
+            return
+        end
+    end
 
-        --From the startup project locate the project path
-        print("Locating path for startup project: "..Current.StartupProject)
-        local thePath = nil
-        for _,v in ipairs(SolutionManager.Solution.Projects) do
-            if(Current.StartupProject== v.Name) then
-                thePath = path.GetParrentDirectory(SolutionManager.Solution.SolutionPath,osutils.seperator) .. osutils.seperator .. v.RelPath
-                break
-            end
+    --From the startup project locate the project path
+    print("Locating path for startup project: "..Current.StartupProject)
+    local thePath = nil
+    for _,theProject in ipairs(SolutionManager.Solution.Projects) do
+        if(Current.StartupProject == theProject.Name) then
+            thePath = path.GetParrentDirectory(SolutionManager.Solution.SolutionPath,osutils.seperator) .. osutils.seperator .. theProject.RelPath
+            break
         end
-        if(Current.StartupLaunchProfile== nil) then
-            command = string.format("!start cmd /K dotnet run --project %s -c %s",thePath,Current.BuildConfiguration)
-        else
-            command = string.format("!start cmd /K dotnet run --project %s --launch-profile %s -c %s",thePath,Current.StartupLaunchProfile,Current.BuildConfiguration)
-        end
+    end
+
+    if(thePath == nil) then
+        print("Project path was not found!")
+        return
+    end
+
+    if(Current.StartupLaunchProfile == nil) then
+        command = string.format("!start cmd /K dotnet run --project %s -c %s",thePath,Current.BuildConfiguration)
+    else
+        command = string.format("!start cmd /K dotnet run --project %s --launch-profile %s -c %s",thePath,Current.StartupLaunchProfile,Current.BuildConfiguration)
     end
     -- TODO: Try to open in new window
     vim.cmd(command)
@@ -372,8 +380,8 @@ SolutionManager.Launch = function()
         --on_exit = on_event,
         --stdout_buffered = true,
         --stderr_buffered = true,
-    --})
-end
+        --})
+    end
 
 SolutionManager.DisplayStartupProjectProfiles = function()
     local startupProjectPath = nil
