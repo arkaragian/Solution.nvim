@@ -342,8 +342,10 @@ SolutionManager.Launch = function()
     local command = nil
 
     -- TODO: Currently we only have windows commands. Also take care linux commands.
+    -- If no startup project is selected. Try to execute the solution
     if(Current.StartupProject == nil) then
-        command = string.format("!start cmd /K dotnet run -c %s",Current.BuildConfiguration)
+        local thePath = path.GetParrentDirectory(SolutionManager.Solution.SolutionPath,osutils.seperator)
+        command = string.format("!start cmd /K \"cd %s && dotnet run -c %s\"",thePath,Current.BuildConfiguration)
         -- command = string.format("!start dotnet run -c %s",Current.BuildConfiguration)
     else
 
