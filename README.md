@@ -64,6 +64,12 @@ The following commands are defined by the plugin:
 ## Current State
 The plugin is still in early alpha stage and the design will be breaking frequently.
 
+## Cache location
+The cache is located on the following locations
+```
+AppData\Local\Temp\nvim
+```
+
 ## Implemented Features
 - [x] Automatic `.sln` and `.csproj` detection within the filesystem.
 - [x] Quick fix list implementation from compilation output.
