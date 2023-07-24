@@ -2,6 +2,18 @@
 A neovim plugin that adds support for V***** S***** .sln and .csproj files.
 Written in Lua.
 
+THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+## Current State
+**Warning**: This plugin is still in early alpha stage and the design will be breaking frequently.
+This piece of software comes as is 
+
 ## Showcase
 Solution Loading:
 
@@ -34,35 +46,46 @@ local SolutionConfig = {
     -- 1) first
     -- 2) selection
     -- First indicates to use the first file that is found and is applicable
-    -- select indicates to ask to selection of there are multiple files found
-    ProjectSelectionPolicy = "first",
-    DefaultBuildConfiguration = "Debug",
+    -- select indicates to ask to selection in case that there are multiple applicable
+    -- files found
+    SolutionSelectionPolicy = "first",   -- Compile the first project that we find.
+    DefaultBuildConfiguration = "Debug", -- What configuration to build with
     DefaultBuildPlatform = "Any CPU",
-    display = { -- Controls options for popup windows.
-        removeCR = true,
-        HideCompilationWarnings = true
-    },
+    Display = {
+        RemoveCR = true,                 -- Remove final CR characters on popup windows
+        HideCompilationWarnings = true   -- Hide compilation warnings
+    }
 }
+
+
+https://github.com/bradharding/doomretro.git
 
 sln.setup(config)
 ```
 
 ### Setup options
-`ProjectSelectionPolicy`: Defines the behavior when multiple .sln files have
+`SolutionSelectionPolicy`: Defines the behavior when multiple .sln files have
 been detected. valid values are `first` and `select`
 `BuildConfiguration`: defines the default build configuration for the solution
 
 ## Usage
 The following commands are defined by the plugin:
-1. `LoadSolution`: Locates and loads a solution file in memory
-1. `DisplaySolution`: Displays the solution that is loaded in memory
-1. `SelectConfiguration`: Select a build configuration from the available build configurations
-1. `SelectPlatform`: Selects a build platform from the available build platforms
-1. `SelectWarningDisplay`: Selects if the compilation warnings will be displayed to thq QuickFix window
+1. `LoadSolution`                  :Loads a solution in memory
+1. `DisplaySolution`               :Displays the loaded solution
+1. `DisplayOutputs`                :Displays the .dll executables that this solution produces
+1. `DisplayExecutionScheme`        :Displays the current solution configuration and platform. Also displays the solution outputs
+1. `DisplayStartupProjectProfiles` :Displays the project profiles for the startup project
+1. `SelectBuildConfiguration`      :Select Active Build Configuration
+1. `SelectPlatform`                :Select Active Build Platform
+1. `SelectWaringDisplay`           :Select if compilation warnings populate the quickfix list
+1. `SelectStartupProject`          :Select the solution startup project
+1. `SelectTest`                    :Select a test for debug
+1. `ExecuteTest`                   :Select a test for debug
+1. `LaunchSolution`                :Launch the solution
+1. `CompileSolution`               :Compiles the currently loaded solution
 
 
-## Current State
-The plugin is still in early alpha stage and the design will be breaking frequently.
+
 
 ## Cache location
 The cache is located on the following locations
