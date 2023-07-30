@@ -35,7 +35,7 @@ CacheManager.CacheRootLocation = vim.fn.stdpath("cache").. OSUtils.seperator .. 
 
 
 --- Provides a path inside the cache directory of the given solution path.
-CacheManager.ProvidePath = function(SolutionPath,file)
+CacheManager.ProvideCachePath= function(SolutionPath,file)
     return CacheManager.CacheRootLocation .. OSUtils.seperator .. CacheManager.HashString(SolutionPath) .. OSUtils.seperator .. file
 end
 
@@ -168,7 +168,7 @@ CacheManager.WriteCacheData = function(SolutionPath,CacheData)
     if(SolutionPath == nil) then
         return
     end
-    local location = CacheManager.ProvidePath(SolutionPath,"CacheData.json")
+    local location = CacheManager.ProvideCachePath(SolutionPath,"CacheData.json")
 
     local json = vim.json.encode(CacheData)
 
@@ -192,7 +192,7 @@ CacheManager.ReadCacheData = function(SolutionPath)
     if(SolutionPath == nil) then
         return
     end
-    local location = CacheManager.ProvidePath(SolutionPath,"CacheData.json")
+    local location = CacheManager.ProvideCachePath(SolutionPath,"CacheData.json")
 
     local file = io.open(location, "r")
 
