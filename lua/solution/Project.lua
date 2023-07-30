@@ -1,3 +1,9 @@
+--- Project Module
+-- This module provides functionality to manage and interact with .NET projects.
+-- It includes functions for launching projects, retrieving project profile names,
+-- parsing project XML files, and getting command-line arguments from a profile.
+-- @module Project
+
 local xml2lua = require("xml2lua")
 local handler = require("xml2lua.xmlhandler.tree")
 
@@ -7,8 +13,13 @@ local os = require("solution.osutils")
 
 local Project = {}
 
---- Parses the xml structure of a project
--- @param filename The filename of the project
+--- Parses a given XML project file into a Lua table.
+-- This function reads the specified XML file and uses an XML handler to convert
+-- the XML content into a Lua table, representing the root element of the XML.
+-- @function Project.ParseProject
+-- @tparam string filename The path to the XML file that needs to be parsed.
+-- @treturn table The root element of the parsed XML as a Lua table.
+-- @usage local projectRoot = Project.ParseProject("/path/to/project.xml")
 Project.ParseProject = function(filename)
 
     --Uses a handler that converts the XML to a Lua table
@@ -21,6 +32,13 @@ Project.ParseProject = function(filename)
     return handler.root
 end
 
+--- Retrieves the project profile names from a specified .NET project.
+-- This function looks for a `launchSettings.json` file in the "Properties" directory of the given project path.
+-- It then decodes the JSON content and extracts the profile names, sorting them alphabetically.
+-- @function Project.GetProjectProfileNames
+-- @tparam string ProjectPath The path to the .NET project for which profile names are to be retrieved.
+-- @treturn table|nil An ordered table of profile names or `nil` if the file does not exist or profiles are not found.
+-- @usage local profiles = Project.GetProjectProfileNames("/path/to/project")
 Project.GetProjectProfileNames = function(ProjectPath)
     --From the project path find the project "Properties" directory
     --Decode the Json and list the tiems alphabeticaly(?)
@@ -60,6 +78,14 @@ Project.GetArgStringFromProfile = function(profile)
 end
 
 
+--- Launches a specified .NET project using the given launch profile.
+-- This function will run the .NET project by constructing a command string
+-- with the project path and launch profile, and then executing the command
+-- using Vim's command-line interface.
+-- @function Project.LaunchProject
+-- @tparam string ProjectPath The path to the .NET project to be launched.
+-- @tparam string profile The launch profile that supplies the command-line arguments.
+-- @usage Project.LaunchProject("/path/to/project", "Development")
 Project.LaunchProject = function(ProjectPath,profile)
     -- In order to execute a project we need the following:
     -- 1 The launch profile that supplies the command line arguments
