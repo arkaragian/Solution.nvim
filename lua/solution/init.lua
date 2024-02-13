@@ -80,12 +80,14 @@ solution.setup = function(config)
     vim.api.nvim_create_user_command("SelectPlatform"                , solution.SelectBuildPlatform           , {desc = "Select Active Build Platform"                                                                 } )
     vim.api.nvim_create_user_command("SelectWaringDisplay"           , solution.SelectWaringDisplay           , {desc = "Select if compilation warnings populate the quickfix list"                                    } )
     vim.api.nvim_create_user_command("SelectStartupProject"          , solution.SelectStartupProject          , {desc = "Select the solution startup project"                                                          } )
+    vim.api.nvim_create_user_command("SelectLaunchProfile"           , solution.SelectLaunchProfile           , {desc = "Select a launch profile from launchSettings.json"                                             } )
     vim.api.nvim_create_user_command("SelectTest"                    , solution.SetTest                       , {desc = "Select a test for debug"                                                                      } )
     vim.api.nvim_create_user_command("ExecuteTest"                   , solution.TestSelected                  , {desc = "Select a test for debug"                                                                      } )
     vim.api.nvim_create_user_command("LaunchSolution"                , solution.LaunchSolution                , {desc = "Launch the solution"                                                                          } )
     vim.api.nvim_create_user_command("CompileSolution"               , solution.Compile                       , {desc = "Compiles the currently loaded solution"                                                       } )
     -- Execute test in debug mode
     vim.api.nvim_create_user_command("DebugTest"           , function() TestManager.DebugTest(TestFunctionName) end          , {desc = "Select a test for debug"                    } )
+    vim.api.nvim_create_user_command("DebugCSProgram"           , solution.GetCSProgram , {desc = "A Small debug test"                    } )
 
 
 
@@ -142,6 +144,10 @@ end
 
 solution.SelectStartupProject = function()
     SolutionManager.SelectStartupProject()
+end
+
+solution.SelectLaunchProfile = function()
+    SolutionManager.SelectLaunchProfile()
 end
 
 solution.Compile = function()

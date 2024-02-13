@@ -19,7 +19,7 @@ local Current = {
     BuildPlatform = nil,
     StartupProject = nil,
     StartupLaunchProfile = nil,
-    OutputLocations = nil
+    OutputLocations = nil -- Those are populated after a build
 }
 
 
@@ -381,11 +381,20 @@ SolutionManager.Launch = function()
         --stdout_buffered = true,
         --stderr_buffered = true,
         --})
-    end
+end
 
-SolutionManager.DisplayStartupProjectProfiles = function()
+--- Retrieves the launch profiles from the `launchSettings.json` file associated
+-- with the current startup project. This function searches for the `launchSettings.json`
+-- in the `Properties` directory of the current startup project defined in the solution.
+-- If the startup project is not defined or if the `launchSettings.json` file cannot be found
+-- or opened, the function will notify the user via `vim.notify` and return `nil`.
+-- @return table|nil The decoded JSON object from the `launchSettings.json` file if successful, `nil` otherwise.
+-- @usage local launchProfiles = GetLaunchProfiles()
+-- If `launchProfiles` is not `nil`, then the table contains the launch settings for the current startup project.
+
+local function GetLaunchProfileJson()
     local startupProjectPath = nil
-    local filename = nil
+    local launchSettingsLocation = nil
     if(Current.StartupProject == nil) then
         vim.notify("No startup project defined.",vim.log.levels.ERROR,{title="Solution.nvim"})
         return
@@ -393,14 +402,32 @@ SolutionManager.DisplayStartupProjectProfiles = function()
     for _,v in ipairs(SolutionManager.Solution.Projects) do
         if(Current.StartupProject == v.Name) then
             startupProjectPath = path.GetParrentDirectory(SolutionManager.Solution.SolutionPath,osutils.seperator) .. osutils.seperator .. v.RelPath
-            filename = path.GetParrentDirectory(startupProjectPath,osutils.seperator) .. osutils.seperator .."Properties" .. osutils.seperator .. "launchSettings.json"
+            launchSettingsLocation = path.GetParrentDirectory(startupProjectPath,osutils.seperator) .. osutils.seperator .."Properties" .. osutils.seperator .. "launchSettings.json"
             break
         end
     end
 
-    local f = io.open(filename,"r")
+    if(startupProjectPath == nil) then
+        return nil
+    end
+
+    local f = io.open(launchSettingsLocation,"r")
+    if(f == nil) then
+        vim.notify("Could not open launchSettings.json",vim.log.levels.ERROR,{title="Solution.nvim"})
+        return
+    end
+
     local jsonStr = f:read("*a")
     local json = vim.json.decode(jsonStr)
+    return json
+end
+
+SolutionManager.DisplayStartupProjectProfiles = function()
+    local json = GetLaunchProfileJson()
+
+    if(json == nil) then
+        return
+    end
 
     local window
     if(SolutionManager.Solution~= nil and Current.StartupProject ~= nil) then
@@ -424,22 +451,23 @@ SolutionManager.DisplayStartupProjectProfiles = function()
         window.AddLine(line)
         prev = i
     end
-
 end
 
 SolutionManager.SelectLaunchProfile = function()
-    local startupProjectPath = nil
-    if(Current.StartupProject == nil) then
-        vim.notify("No startup project defined.",vim.log.levels.ERROR,{title="Solution.nvim"})
+    local json = GetLaunchProfileJson()
+
+    if(json == nil) then
         return
     end
-    for _,v in ipairs(SolutionManager.Solution.Projects) do
-        if(Current.StartupProject == v.Name) then
-            startupProjectPath = path.GetParrentDirectory(SolutionManager.Solution.SolutionPath,osutils.seperator) .. osutils.seperator .. v.RelPath
-            break
-        end
-    end
-    local Profiles = Project.GetProjectProfiles(startupProjectPath)
+
+    -- The table that will be used for the choices
+    local Profiles = {
+    }
+
+    -- Populate the choice table only with them 
+     for i,_ in pairs(json.profiles) do
+         table.insert(Profiles,i)
+     end
 
 
     local SelectionHandler = function(item,_) -- Discard index
@@ -457,21 +485,32 @@ SolutionManager.SelectLaunchProfile = function()
     vim.ui.select(Profiles,opts,SelectionHandler)
 end
 
+--- Returns the command line that DAP needs to execute in order to debug our project
 SolutionManager.GetCSProgram= function()
     local csProgram = nil
+
     if(Current.OutputLocations == nil) then
+        -- There are no output locations. This means that the nvim has been opened
+        -- but there have never been a compilation of the program in order to sniff
+        -- the compiler output.
         return csProgram
     elseif(#Current.OutputLocations> 1) then
         -- We have more than one ouptut location. If we have defined a startup project then
         -- execute that. If not then then ask the user what to execute.
         if(Current.StartupProject ~= nil) then
-            for i,v in ipairs(Current.OutputLocations) do
+            for i,_ in ipairs(Current.OutputLocations) do
                 if(Current.OutputLocations[i].Project == Current.StartupProject) then
                     csProgram = Current.OutputLocations[i].OutputLocation
-                    return csProgram
                 end
             end
         end
+
+        if(csProgram == nil) then
+            return nil
+        end
+
+
+        -- Now check if we have a launch profile.
 
 
         -- Ask the user to select one.
@@ -518,11 +557,33 @@ SolutionManager.GetCSProgram= function()
             end
         end)
     else
+        -- We have a single output location. Deal with that.
+        -- If we have a launch profile process this to
+        -- create the command line arguments.
+        local the_profile = nil
+        if(Current.StartupLaunchProfile ~= nil) then
+            local json = GetLaunchProfileJson();
+            if(json ~= nil) then
+                for k,v in pairs(json.profiles) do
+                    if(k == Current.StartupLaunchProfile) then
+                        the_profile = v
+                        break;
+                    end
+                end
+            end
+        end
         --return vim.fn.input('Path to dll: ', locs[1][2], 'file') -- Nothing selected set the first input
-        csProgram = Current.OutputLocations[1].OutputLocation
+        if(the_profile == nil or the_profile.commandLineArgs == nil) then
+            csProgram = Current.OutputLocations[1].OutputLocation
+        else
+            csProgram = Current.OutputLocations[1].OutputLocation .. " " .. the_profile.commandLineArgs
+        end
     end
 
     return csProgram
 end
+
+
+
 
 return SolutionManager
