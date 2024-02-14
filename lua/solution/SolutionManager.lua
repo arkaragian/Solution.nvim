@@ -129,7 +129,8 @@ end
 
 SolutionManager.SelectStartupProject = function()
     if(SolutionManager.Solution == nil) then
-            return
+        vim.notify("No solution detected. Cannot select startup project",vim.log.levels.ERROR,{title="Solution.nvim"})
+        return
     end
 
     local items = {
@@ -493,6 +494,8 @@ SolutionManager.GetCSProgram= function()
         -- There are no output locations. This means that the nvim has been opened
         -- but there have never been a compilation of the program in order to sniff
         -- the compiler output.
+        --
+        -- TODO: Maybe assume location here
         return csProgram
     elseif(#Current.OutputLocations> 1) then
         -- We have more than one ouptut location. If we have defined a startup project then
@@ -557,22 +560,35 @@ SolutionManager.GetCSProgram= function()
             end
         end)
     else
+        -- If there is no startup launch profile defined then just return the
+        -- one and only output location that we know.
+        if(Current.StartupLaunchProfile == nil) then
+            return Current.OutputLocations[1].OutputLocation
+        end
+
         -- We have a single output location. Deal with that. If we have a launch
         -- profile process this to create the command line arguments.
         local the_profile = nil
-        if(Current.StartupLaunchProfile ~= nil) then
-            local json = GetLaunchProfileJson();
-            if(json ~= nil) then
-                for k,v in pairs(json.profiles) do
-                    if(k == Current.StartupLaunchProfile) then
-                        the_profile = v
-                        break;
-                    end
-                end
+        local json = GetLaunchProfileJson();
+        if(json == nil) then
+            vim.notify("Could not parse launchSettings.json",vim.log.levels.ERROR, {title="Solution.nvim"})
+            return nil
+        end
+
+        for k,v in pairs(json.profiles) do
+            if(k == Current.StartupLaunchProfile) then
+                the_profile = v
+                break;
             end
         end
+
+        if(the_profile == nil) then
+            vim.notify("Could not locate " .. Current.StartupLaunchProfile .." in launchSettings.json returning sniffed compile location",vim.log.levels.ERROR, {title="Solution.nvim"})
+            return Current.OutputLocations[1].OutputLocation
+        end
+
         --return vim.fn.input('Path to dll: ', locs[1][2], 'file') -- Nothing selected set the first input
-        if(the_profile == nil or the_profile.commandLineArgs == nil) then
+        if(the_profile.commandLineArgs == nil) then
             csProgram = Current.OutputLocations[1].OutputLocation
         else
             csProgram = Current.OutputLocations[1].OutputLocation .. " " .. the_profile.commandLineArgs
@@ -581,12 +597,6 @@ SolutionManager.GetCSProgram= function()
 
     return csProgram
 end
-
-
-SolutionManager.GetCSProgramArguments = function()
-end
-
-
 
 
 return SolutionManager
