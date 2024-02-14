@@ -14,6 +14,7 @@
 -- Now even with that we are not sure that we need to support all the features
 -- of V***** S***** since some of them are quite internal to the IDE. Only time
 -- will tell.
+local log = require("solution.log")
 
 local SolutionParser = {}
 
@@ -178,6 +179,8 @@ local function ParseProject(fileHandle,startPosition,lineCounter)
         print("Error could not parse project!")
         result.position = fileHandle:seek()
         return result
+    else
+        log.information("Parsed project "..project)
     end
 
     local utils = require("solution.utils")
@@ -501,6 +504,7 @@ end
 SolutionParser.ParseSolution = function(filename)
     local ext = path.GetFileExtension(filename)
     if (ext ~= ".sln") then
+        log.information("The extension is not .sln refusing to parse")
         return
     end
 

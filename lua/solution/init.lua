@@ -1,3 +1,4 @@
+local log = require("solution.log")
 
 -- This is the module that will be finaly returned to the editor
 local solution = {}
@@ -386,6 +387,7 @@ solution.FindAndLoadSolution = function(options)
             vim.notify("No sln file located. Trying to locate csproj file.",vim.log.levels.WARN, {title="Solution.nvim"})
             slnFile = Path.FindUpstreamFilesByExtension(".csproj")
             if(slnFile == nil ) then
+                log.error("No .csproj file located!")
                 vim.notify("No .csproj file located!",vim.log.levels.ERROR, {title="Solution.nvim"})
                 return 1
             else
