@@ -366,9 +366,9 @@ solution.GetCSProgram= function()
     return SolutionManager.GetCSProgram();
 end
 
---- Locates the .sln where the file that is currently edited belong to and loads
--- is into memory. This is private member and we reserve the right to change it
--- any time.
+--- Locates the .sln starting from the location of the file that is currently being
+-- edited and move upstream. Then the .sln file is located it is then loaded into memory
+-- This is private member and we reserve the right to change it any time.
 -- @param options The plugin configuration options
 solution.FindAndLoadSolution = function(options)
 
@@ -386,6 +386,7 @@ solution.FindAndLoadSolution = function(options)
             vim.notify("No sln file located. Trying to locate csproj file.",vim.log.levels.WARN, {title="Solution.nvim"})
             slnFile = Path.FindUpstreamFilesByExtension(".csproj")
             if(slnFile == nil ) then
+                vim.notify("No .csproj file located!",vim.log.levels.ERROR, {title="Solution.nvim"})
                 return 1
             else
                 filename = slnFile[1]
