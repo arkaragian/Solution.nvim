@@ -557,9 +557,8 @@ SolutionManager.GetCSProgram= function()
             end
         end)
     else
-        -- We have a single output location. Deal with that.
-        -- If we have a launch profile process this to
-        -- create the command line arguments.
+        -- We have a single output location. Deal with that. If we have a launch
+        -- profile process this to create the command line arguments.
         local the_profile = nil
         if(Current.StartupLaunchProfile ~= nil) then
             local json = GetLaunchProfileJson();
@@ -581,6 +580,10 @@ SolutionManager.GetCSProgram= function()
     end
 
     return csProgram
+end
+
+
+SolutionManager.GetCSProgramArguments = function()
 end
 
 
