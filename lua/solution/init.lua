@@ -109,6 +109,9 @@ solution.setup = function(config)
         callback = solution.LoadSolution,
         group = SolutionNvimSolutionAutoLoader,
     })
+
+    -- Let everyone else know that we have loaded
+    vim.g.SolutionPluginLoaded = true
 end
 
 -----------------------------------------------------------------------------
@@ -523,7 +526,5 @@ solution.FunctionTest = function()
     --p.GetBinaryOutput("C:/users/Admin/source/repos/AIStream/AIStream.sln")
 end
 
--- Let everyone else know that we have loaded
-vim.g.SolutionPluginLoaded = true
 
 return solution

@@ -179,8 +179,6 @@ local function ParseProject(fileHandle,startPosition,lineCounter)
         print("Error could not parse project!")
         result.position = fileHandle:seek()
         return result
-    else
-        log.information("Parsed project "..project)
     end
 
     local utils = require("solution.utils")

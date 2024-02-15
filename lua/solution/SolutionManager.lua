@@ -589,9 +589,9 @@ SolutionManager.GetCSProgram= function()
 
         --return vim.fn.input('Path to dll: ', locs[1][2], 'file') -- Nothing selected set the first input
         if(the_profile.commandLineArgs == nil) then
-            csProgram = Current.OutputLocations[1].OutputLocation
+            return Current.OutputLocations[1].OutputLocation
         else
-            csProgram = Current.OutputLocations[1].OutputLocation .. " " .. the_profile.commandLineArgs
+            return Current.OutputLocations[1].OutputLocation .. " " .. the_profile.commandLineArgs
         end
     end
 
