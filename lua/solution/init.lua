@@ -83,9 +83,10 @@ solution.setup = function(config)
     vim.api.nvim_create_user_command("SelectStartupProject"          , solution.SelectStartupProject          , {desc = "Select the solution startup project"                                                          } )
     vim.api.nvim_create_user_command("SelectLaunchProfile"           , solution.SelectLaunchProfile           , {desc = "Select a launch profile from launchSettings.json"                                             } )
     vim.api.nvim_create_user_command("SelectTest"                    , solution.SetTest                       , {desc = "Select a test for debug"                                                                      } )
-    vim.api.nvim_create_user_command("ExecuteTest"                   , solution.TestSelected                  , {desc = "Select a test for debug"                                                                      } )
+    vim.api.nvim_create_user_command("ExecuteTest"                   , solution.TestSelected                  , {desc = "Execute Test"                                                                                 } )
     vim.api.nvim_create_user_command("LaunchSolution"                , solution.LaunchSolution                , {desc = "Launch the solution"                                                                          } )
     vim.api.nvim_create_user_command("CompileSolution"               , solution.Compile                       , {desc = "Compiles the currently loaded solution"                                                       } )
+    vim.api.nvim_create_user_command("ListTest"                      , solution.GetTests                      , {desc = "Gets the solution tests"                                                       } )
     -- Execute test in debug mode
     vim.api.nvim_create_user_command("DebugTest"           , function() TestManager.DebugTest(TestFunctionName) end          , {desc = "Select a test for debug"                    } )
     vim.api.nvim_create_user_command("DebugCSProgram"           , solution.GetCSProgram , {desc = "A Small debug test"                    } )
@@ -398,6 +399,7 @@ solution.FindAndLoadSolution = function(options)
             end
         else
             filename = slnFile[1]
+            filenameSLN = slnFile[1]
         end
     elseif (options.SolutionSelectionPolicy == SolutionSelectionPolicies.Selection) then
         -- Select file
@@ -480,7 +482,28 @@ end
 
 --- Load all the tests that are reported by dotnet
 solution.GetTests = function()
-    solution.PerformCommand("ListTest", options)
+    local tm = require("solution.TestManager")
+    local tests = tm.GetTests(filenameSLN)
+
+
+    -- TODO if tests more than zero
+    local window = win.new("=== TESTS ===")
+    window.PaintWindow()
+    window.SetFiletype("lua")
+
+    local str = vim.inspect(tests)
+
+    local i = 0
+    local prev = 0
+    while(true) do
+        i,_ = string.find(str,"\n",i+1)
+        if(i == nil) then
+            break
+        end
+        local line = string.sub(str,prev+1,i-1)
+        window.AddLine(line)
+        prev = i
+    end
 end
 
 --- Sets the test that will be invoked by the TestSelected method.
