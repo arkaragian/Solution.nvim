@@ -11,8 +11,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 ## Current State
-**Warning**: This plugin is still in early alpha stage and the design will be breaking frequently.
-This piece of software comes as is 
+**Warning**: This plugin is still in early alpha stage and the design will be
+breaking frequently. This piece of software comes as is 
 
 ## Showcase
 Solution Loading:

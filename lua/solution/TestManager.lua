@@ -6,6 +6,7 @@ local TestManager = {}
 local Path = require("solution.path")
 local utils = require("solution.utils")
 
+--- This is async populated
 local TestList = {}
 
 -- Holds the state of the "parser" as we list the tests with "dotnet test"
@@ -15,19 +16,37 @@ local TestListParsingState = "none"
 -- The previous line that we parsed in "dotnet test"
 local PreviousLine = nil
 
+--- Keeps the state of the TestManager
+local State = {
+    TestList = {},
+    TestListParsingState = "none"
+}
+
 
 local win = require("solution.window")
+
+
+--- The exit callback that is called when the dotnet test command finishes
+-- @param jobid is discarted
+-- @param data is discarted
+-- @param event should always be exit
+local function ReceiveTestListResultsExitCallback(_, _, event)
+    if(event == "exit") then
+        State.TestListParsingState = "none"
+        PreviousLine = nil
+        vim.notify("Test Detection Finished. ".. utils.Length(State.TestList) .. " Tests found." ,vim.log.levels.INFO,{title = "Solution.nvim"})
+    end
+end
 
 --- Parses all the output of the "dotnet test --list-tests" command.
 -- Uses the PreviousLine and TestListParsingState as a state. Discard the job id.
 -- We don't need it. This method is used as an event handler.
-local function ReceiveTestListResultsCallback(_, data, event)
-    if(event == "exit") then
-        TestListParsingState = "none"
-        PreviousLine = nil
-        print(utils.Length(TestList) .. " Tests found.")
-    end
-
+-- @param id The job id. Is discarted.
+-- @param data The data contained in the callback
+-- @param event The event type either "stdout" "stderr" or "exit"
+-- @param picker_update_callback A callback that updates the test results back to telescope
+-- @return a string value
+local function ReceiveTestListResultsCallback(_, data, _, update_picker)
     -- Just return if we have no data
     if(data == nil) then
         return
@@ -44,13 +63,35 @@ local function ReceiveTestListResultsCallback(_, data, event)
     -- Job event handlers may receive partial (incomplete) lines. For a given
     -- invocation of on_stdout/on_stderr, `data` is not guaranteed to end
     -- with a newline.
-    -- Concat data to single line
+
+    -- Tha value of this is reset in each execution
     local line = ""
+
+    print("Line variable before concat \"" .. line .."\"");
+
+    -- Concat data to single line
     for _,lineSegment in ipairs(data) do
+        print("Adding: \"" .. lineSegment .. "\"");
         line = line .. lineSegment
     end
 
-    if(TestListParsingState == "parsing") then
+    if(State.TestListParsingState == "none") then
+        --- The start location that string.find returns for the pattern
+        local start
+        -- dotnet test --list-tests gives out the following file before
+        -- outputing the tests: "The following Tests are available:"
+        -- If we find this line then we can commence the parsing.
+        start, _= string.find(line,"The following Tests are available:")
+
+        -- We have found the magic string. What comes next are test names
+        -- change our state.
+        if(start ~= nil) then
+            State.TestListParsingState = "parsing"
+        end
+        return
+    end
+
+    if(State.TestListParsingState == "parsing") then
         if(line == "") then
             return
         end
@@ -68,7 +109,11 @@ local function ReceiveTestListResultsCallback(_, data, event)
                 if(lfIndex == nil) then
                     local s = string.sub(PreviousLine,lfPrev,string.len(PreviousLine))
                     local testName = s:gsub("^%s+", ""):gsub("%s+$", "")
-                    table.insert(TestList,testName)
+                    table.insert(State.TestList,testName)
+                    --print("Inserting Test:" .. testName)
+                    if update_picker then
+                        update_picker(testName)
+                    end
                 else
                     lfPrev = lfIndex
                 end
@@ -91,7 +136,11 @@ local function ReceiveTestListResultsCallback(_, data, event)
                 -- This happens if the line that is processed starts with \r.
                 -- We have alrady hanled this.
                 if(testName ~= "") then
-                    table.insert(TestList,testName)
+                    table.insert(State.TestList,testName)
+                    -- print("Inserting Test:" .. testName)
+                    if update_picker then
+                        update_picker(testName)
+                    end
                 end
                 lfPrev = lfIndex
             end
@@ -100,15 +149,6 @@ local function ReceiveTestListResultsCallback(_, data, event)
         return
     end
 
-    if(TestListParsingState == "none") then
-        local start
-        -- After this line the tests are listed.
-        start, _= string.find(line,"The following Tests are available:")
-        if(start ~= nil) then
-            TestListParsingState = "parsing"
-            return
-        end
-    end
 end
 
 TestManager.GetTestUnderCursor = function()
@@ -150,22 +190,50 @@ TestManager.GetTestUnderCursor = function()
     end
 end
 
--- Executes the "dotnet test --list-tests" command and parses the resulting
--- tests.
-TestManager.GetTests = function(filename)
-    local ext = Path.GetFileExtension(filename)
+TestManager.GetTestList = function()
+    return State.TestList
+end
+
+--- Executes the "dotnet test --list-tests" command and parses the resulting tests.
+TestManager.GetTests = function(solutionfile, update_picker)
+    if(solutionfile == nil) then
+        return nil
+    end
+
+    local ext = Path.GetFileExtension(solutionfile)
     if(ext ~= ".sln") then
         return nil
     end
-    local command = "dotnet test " .. filename .. " --list-tests"
+
+    State.TestList = {}
+    local command = "dotnet test " .. solutionfile .. " --list-tests"
     print(command)
 
     local id = vim.fn.jobstart(command,{
-        on_stderr = ReceiveTestListResultsCallback,
-        on_stdout = ReceiveTestListResultsCallback,
-        on_exit = ReceiveTestListResultsCallback,
+        -- on_stderr = ReceiveTestListResultsCallback,
+        -- on_stdout = ReceiveTestListResultsCallback,
+        on_stderr = function(_, data, event)
+            ReceiveTestListResultsCallback(_, data, event, update_picker)
+        end,
+        on_stdout = function(_, data, event)
+            ReceiveTestListResultsCallback(_, data, event, update_picker)
+        end,
+        on_exit = ReceiveTestListResultsExitCallback,
     })
+    if(id == 0) then
+        vim.notify("Invalid arguments",vim.log.levels.ERROR,{title = "Solution.nvim Test Parsing"})
+    end
 
+    if(id == -1) then
+        vim.notify("Command or Shell is not Executable",vim.log.levels.ERROR,{title = "Solution.nvim Test Parsing"})
+    end
+
+-- Returns |job-id| on success, 0 on invalid arguments (or job
+-- table is full), -1 if {cmd}[0] or 'shell' is not executable.
+-- The returned job-id is a valid |channel-id| representing the
+-- job's stdio streams. Use |chansend()| (or |rpcnotify()| and
+-- |rpcrequest()| if "rpc" was enabled) to send data to stdin and
+-- |chanclose()| to close the streams without stopping the job.
     return TestList
 end
 

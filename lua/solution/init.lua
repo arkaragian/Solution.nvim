@@ -72,24 +72,24 @@ solution.setup = function(config)
 
     solution.GetCompilerVersion()
 
-    vim.api.nvim_create_user_command("LoadSolution"                  , solution.LoadSolution                  , {desc = "Loads a solution in memory"                                                                   } )
-    vim.api.nvim_create_user_command("DisplaySolution"               , solution.DisplaySolution               , {desc = "Displays the loaded solution"                                                                 } )
-    vim.api.nvim_create_user_command("DisplayOutputs"                , solution.DisplayOutputs                , {desc = "Displays the .dll executables that this solution produces"                                    } )
-    vim.api.nvim_create_user_command("DisplayExecutionScheme"        , solution.DisplayExecutionScheme        , {desc = "Displays the current solution configuration and platform. Also displays the solution outputs" } )
-    vim.api.nvim_create_user_command("DisplayStartupProjectProfiles" , solution.DisplayStartupProjectProfiles , {desc = "Displays the project profiles for the startup project"                                        } )
-    vim.api.nvim_create_user_command("SelectBuildConfiguration"      , solution.SelectBuildConfiguration      , {desc = "Select Active Build Configuration"                                                            } )
-    vim.api.nvim_create_user_command("SelectPlatform"                , solution.SelectBuildPlatform           , {desc = "Select Active Build Platform"                                                                 } )
-    vim.api.nvim_create_user_command("SelectWaringDisplay"           , solution.SelectWaringDisplay           , {desc = "Select if compilation warnings populate the quickfix list"                                    } )
-    vim.api.nvim_create_user_command("SelectStartupProject"          , solution.SelectStartupProject          , {desc = "Select the solution startup project"                                                          } )
-    vim.api.nvim_create_user_command("SelectLaunchProfile"           , solution.SelectLaunchProfile           , {desc = "Select a launch profile from launchSettings.json"                                             } )
-    vim.api.nvim_create_user_command("SelectTest"                    , solution.SetTest                       , {desc = "Select a test for debug"                                                                      } )
-    vim.api.nvim_create_user_command("ExecuteTest"                   , solution.TestSelected                  , {desc = "Execute Test"                                                                                 } )
-    vim.api.nvim_create_user_command("LaunchSolution"                , solution.LaunchSolution                , {desc = "Launch the solution"                                                                          } )
-    vim.api.nvim_create_user_command("CompileSolution"               , solution.Compile                       , {desc = "Compiles the currently loaded solution"                                                       } )
-    vim.api.nvim_create_user_command("ListTest"                      , solution.GetTests                      , {desc = "Gets the solution tests"                                                       } )
+    vim.api.nvim_create_user_command("SolLoadSolution"                  , solution.LoadSolution                  , {desc = "Loads a solution in memory"                                                                   } )
+    vim.api.nvim_create_user_command("SolDisplaySolution"               , solution.DisplaySolution               , {desc = "Displays the loaded solution"                                                                 } )
+    vim.api.nvim_create_user_command("SolDisplayOutputs"                , solution.DisplayOutputs                , {desc = "Displays the .dll executables that this solution produces"                                    } )
+    vim.api.nvim_create_user_command("SolDisplayExecutionScheme"        , solution.DisplayExecutionScheme        , {desc = "Displays the current solution configuration and platform. Also displays the solution outputs" } )
+    vim.api.nvim_create_user_command("SolDisplayStartupProjectProfiles" , solution.DisplayStartupProjectProfiles , {desc = "Displays the project profiles for the startup project"                                        } )
+    vim.api.nvim_create_user_command("SolSelectBuildConfiguration"      , solution.SelectBuildConfiguration      , {desc = "Select Active Build Configuration"                                                            } )
+    vim.api.nvim_create_user_command("SolSelectPlatform"                , solution.SelectBuildPlatform           , {desc = "Select Active Build Platform"                                                                 } )
+    vim.api.nvim_create_user_command("SolSelectWaringDisplay"           , solution.SelectWaringDisplay           , {desc = "Select if compilation warnings populate the quickfix list"                                    } )
+    vim.api.nvim_create_user_command("SolSelectStartupProject"          , solution.SelectStartupProject          , {desc = "Select the solution startup project"                                                          } )
+    vim.api.nvim_create_user_command("SolSelectLaunchProfile"           , solution.SelectLaunchProfile           , {desc = "Select a launch profile from launchSettings.json"                                             } )
+    vim.api.nvim_create_user_command("SolSelectTest"                    , solution.SetTest                       , {desc = "Select a test for debug"                                                                      } )
+    vim.api.nvim_create_user_command("SolExecuteTest"                   , solution.TestSelected                  , {desc = "Execute Test"                                                                                 } )
+    vim.api.nvim_create_user_command("SolLaunchSolution"                , solution.LaunchSolution                , {desc = "Launch the solution"                                                                          } )
+    vim.api.nvim_create_user_command("SolCompileSolution"               , solution.Compile                       , {desc = "Compiles the currently loaded solution"                                                       } )
+    vim.api.nvim_create_user_command("SolListTest"                      , solution.PickTests                      , {desc = "Gets the solution tests"                                                       } )
     -- Execute test in debug mode
-    vim.api.nvim_create_user_command("DebugTest"           , function() TestManager.DebugTest(TestFunctionName) end          , {desc = "Select a test for debug"                    } )
-    vim.api.nvim_create_user_command("DebugCSProgram"           , solution.GetCSProgram , {desc = "A Small debug test"                    } )
+    vim.api.nvim_create_user_command("SolDebugTest"           , function() TestManager.DebugTest(TestFunctionName) end          , {desc = "Select a test for debug"                    } )
+    vim.api.nvim_create_user_command("SolDebugCSProgram"           , solution.GetCSProgram , {desc = "A Small debug test"                    } )
 
 
 
@@ -119,10 +119,14 @@ end
 --               U S E R  M A P P A B L E  P U B L I C  A P I              --
 -----------------------------------------------------------------------------
 
+--- A Function that finds and loads a solution.
+--This is directly bindable to command
 solution.LoadSolution = function()
     solution.FindAndLoadSolution(SolutionConfig)
 end
 
+--- A Function that displays a solution.
+--This is directly bindable to command
 solution.DisplaySolution = function()
     SolutionParser.DisplaySolution(SolutionManager.Solution)
 end
@@ -419,6 +423,10 @@ solution.FindAndLoadSolution = function(options)
         CacheManager.SetupCache(SolutionManager.Solution.SolutionPath)
         vim.notify("Loaded "..filename,vim.log.levels.INFO, {title="Solution.nvim"})
 
+        -- TODO: Check the projects if there are test projects then parse the
+        -- the tests.
+        require("solution.TestManager").GetTests(filename)
+
         local CacheData = CacheManager.ReadCacheData(SolutionManager.Solution.SolutionPath)
         if(CacheData ~= nil) then
             SolutionManager.HandleCacheData(CacheData)
@@ -480,6 +488,10 @@ solution.TestSelected = function()
     tm.ExecuteSingleTest(TestProject,TestFunctionName)
 end
 
+solution.PickTests = function()
+    local tp = require("solution.TestPicker")
+    tp.Pick()
+end
 --- Load all the tests that are reported by dotnet
 solution.GetTests = function()
     local tm = require("solution.TestManager")

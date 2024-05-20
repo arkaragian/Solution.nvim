@@ -507,7 +507,9 @@ SolutionParser.ParseSolution = function(filename)
     end
 
     local solution = {
+        --- The absolute path to the solution file
         SolutionPath = filename,
+        --- The minimal visual studio version for this solution
         VisualStudioVersion = nil,
         MinimumVisualStudioVersion = nil,
         Projects = {},
