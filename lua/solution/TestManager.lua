@@ -9,16 +9,15 @@ local utils = require("solution.utils")
 --- This is async populated
 local TestList = {}
 
--- Holds the state of the "parser" as we list the tests with "dotnet test"
--- The states are two. None and parsing
-local TestListParsingState = "none"
 
 -- The previous line that we parsed in "dotnet test"
 local PreviousLine = nil
 
 --- Keeps the state of the TestManager
-local State = {
+TestManager.State = {
     TestList = {},
+    -- Holds the state of the "parser" as we list the tests with "dotnet test"
+    -- The states are two. None and parsing
     TestListParsingState = "none"
 }
 
@@ -32,9 +31,9 @@ local win = require("solution.window")
 -- @param event should always be exit
 local function ReceiveTestListResultsExitCallback(_, _, event)
     if(event == "exit") then
-        State.TestListParsingState = "none"
+        TestManager.State.TestListParsingState = "none"
         PreviousLine = nil
-        vim.notify("Test Detection Finished. ".. utils.Length(State.TestList) .. " Tests found." ,vim.log.levels.INFO,{title = "Solution.nvim"})
+        vim.notify("Test Detection Finished. ".. utils.Length(TestManager.State.TestList) .. " Tests found." ,vim.log.levels.INFO,{title = "Solution.nvim"})
     end
 end
 
@@ -75,7 +74,7 @@ local function ReceiveTestListResultsCallback(_, data, _, update_picker)
         line = line .. lineSegment
     end
 
-    if(State.TestListParsingState == "none") then
+    if(TestManager.State.TestListParsingState == "none") then
         --- The start location that string.find returns for the pattern
         local start
         -- dotnet test --list-tests gives out the following file before
@@ -86,12 +85,12 @@ local function ReceiveTestListResultsCallback(_, data, _, update_picker)
         -- We have found the magic string. What comes next are test names
         -- change our state.
         if(start ~= nil) then
-            State.TestListParsingState = "parsing"
+            TestManager.State.TestListParsingState = "parsing"
         end
         return
     end
 
-    if(State.TestListParsingState == "parsing") then
+    if(TestManager.State.TestListParsingState == "parsing") then
         if(line == "") then
             return
         end
@@ -109,7 +108,7 @@ local function ReceiveTestListResultsCallback(_, data, _, update_picker)
                 if(lfIndex == nil) then
                     local s = string.sub(PreviousLine,lfPrev,string.len(PreviousLine))
                     local testName = s:gsub("^%s+", ""):gsub("%s+$", "")
-                    table.insert(State.TestList,testName)
+                    table.insert(TestManager.State.TestList,testName)
                     --print("Inserting Test:" .. testName)
                     if update_picker then
                         update_picker(testName)
@@ -136,7 +135,7 @@ local function ReceiveTestListResultsCallback(_, data, _, update_picker)
                 -- This happens if the line that is processed starts with \r.
                 -- We have alrady hanled this.
                 if(testName ~= "") then
-                    table.insert(State.TestList,testName)
+                    table.insert(TestManager.State.TestList,testName)
                     -- print("Inserting Test:" .. testName)
                     if update_picker then
                         update_picker(testName)
@@ -150,6 +149,7 @@ local function ReceiveTestListResultsCallback(_, data, _, update_picker)
     end
 
 end
+
 
 TestManager.GetTestUnderCursor = function()
     -- Principle of operation:
@@ -191,7 +191,7 @@ TestManager.GetTestUnderCursor = function()
 end
 
 TestManager.GetTestList = function()
-    return State.TestList
+    return TestManager.State.TestList
 end
 
 --- Executes the "dotnet test --list-tests" command and parses the resulting tests.
@@ -205,7 +205,7 @@ TestManager.GetTests = function(solutionfile, update_picker)
         return nil
     end
 
-    State.TestList = {}
+    TestManager.State.TestList = {}
     local command = "dotnet test " .. solutionfile .. " --list-tests"
     print(command)
 

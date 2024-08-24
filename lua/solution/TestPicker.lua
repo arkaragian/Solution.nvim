@@ -28,32 +28,48 @@ local TestManager = require("solution.TestManager")
 
 --- Execute a telescope picker for the tests
 TestPicker.Pick = function(opts)
-  opts = opts or {}
+    opts = opts or {}
 
-  --- The results that are actually displayed
-  local test_results = {}
+    if (TestManager.State.TestListParsingState == "parsing") then
+        vim.notify("Test Parsing is not yet ready. Try again later.", vim.log.levels.WARN, { title = "Solution.nvim" })
+        return
+    end
 
-  -- Create the picker
-  local picker = pickers.new(opts, {
-      prompt_title = "Tests",
-      finder = finders.new_table { results = test_results },
-      sorter = conf.generic_sorter(opts),
-  })
+    if (TestManager.State.TestList == nil) then
+        --- The results that are actually displayed
+        local test_results = {}
 
-  --- Adds a test to the displayed results
-  local function update_picker(test)
-      table.insert(test_results, test)
-      if picker then
-          picker:refresh(finders.new_table { results = test_results }, { reset_prompt = false })
-      end
-  end
+        -- Create the picker
+        local picker = pickers.new(opts, {
+                prompt_title = "Tests",
+                finder = finders.new_table { results = test_results },
+                sorter = conf.generic_sorter(opts),
+            })
 
-  -- Start the picker
-  picker:find()
+        --- Adds a test to the displayed results
+        local function update_picker(test)
+            table.insert(test_results, test)
+            if picker then
+                picker:refresh(finders.new_table { results = test_results }, { reset_prompt = false })
+            end
+        end
 
-  -- Call GetTests with the update_picker function
-  TestManager.GetTests(SolutionManager.Solution.SolutionPath, update_picker)
+        -- Start the picker
+        picker:find()
 
+        -- Call GetTests with the update_picker function
+        TestManager.GetTests(SolutionManager.Solution.SolutionPath, update_picker)
+    else
+        -- Create the picker
+        local picker = pickers.new(opts, {
+                prompt_title = "Tests",
+                finder = finders.new_table { results = TestManager.State.TestList },
+                sorter = conf.generic_sorter(opts),
+            })
+
+        -- Start the picker
+        picker:find()
+    end
 end
 
 
