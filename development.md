@@ -1,3 +1,6 @@
+This markdown file describes some development aspects for items that can be
+helpfull as a reference.
+
 # The solution datastructur
 
 When a solution is parsed the solution is stored in a datastrucutre as follows:
