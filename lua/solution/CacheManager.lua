@@ -27,97 +27,100 @@ local log = require("solution.log")
 local CacheManager = {}
 
 local State = {
-    CacheRootInitialized = false
+    CacheRootInitialized = false,
 }
 
-
-CacheManager.CacheRootLocation = vim.fn.stdpath("cache").. OSUtils.seperator .. "solution.nvim"
-
+CacheManager.CacheRootLocation = vim.fn.stdpath("cache") .. OSUtils.seperator .. "solution.nvim"
 
 --- Provides a path inside the cache directory of the given solution path.
-CacheManager.ProvideCachePath= function(SolutionPath,file)
-    return CacheManager.CacheRootLocation .. OSUtils.seperator .. CacheManager.HashString(SolutionPath) .. OSUtils.seperator .. file
+CacheManager.ProvideCachePath = function(SolutionPath, file)
+    return CacheManager.CacheRootLocation
+        .. OSUtils.seperator
+        .. CacheManager.HashString(SolutionPath)
+        .. OSUtils.seperator
+        .. file
 end
 
-
 --- Creates the cache directory. This function should produce a result when it is
---the first time that this plugin is activated or when 
+--the first time that this plugin is activated or when
 CacheManager.CreateCacheRoot = function()
     local cacheDirectory = CacheManager.CacheRootLocation
-    local r = vim.fn.mkdir(cacheDirectory,"p")
+    local r = vim.fn.mkdir(cacheDirectory, "p")
     -- Windows code 0 is sucess and 1 if the directory aloready exists
-    if(r ~= 0 and r ~= 1) then
-        print("Failed to create directory: "..cacheDirectory)
+    if r ~= 0 and r ~= 1 then
+        print("Failed to create directory: " .. cacheDirectory)
         return
     end
     -- Create the log file
     CacheManager.LogInit()
-    print("Cache Directory located at:"..cacheDirectory)
+    print("Cache Directory located at:" .. cacheDirectory)
     State.CacheRootInitialized = true
 end
 
 CacheManager.LogInit = function()
     local filename = CacheManager.CacheRootLocation .. OSUtils.seperator .. "solution.log"
-    local f = io.open(filename,"r")
-    if (f~= nil) then
+    local f = io.open(filename, "r")
+    if f ~= nil then
         -- The file exists. Nothing to init
         f:close()
         return
     end
     -- The file does not exist
-    f = io.open(filename,"w")
-    if(f ~= nil) then
-        local d = os.date("%d-%b-%Y %H:%M:%S",os.time())
-        local s = string.format("[%s][%s] %s","INFO",d,"Log initialised\n")
+    f = io.open(filename, "w")
+    if f ~= nil then
+        local d = os.date("%d-%b-%Y %H:%M:%S", os.time())
+        local s = string.format("[%s][%s] %s", "INFO", d, "Log initialised\n")
         f:write(s)
         f:close()
     else
-        print("Could not create log file: "..filename)
+        print("Could not create log file: " .. filename)
     end
 end
 
 --- Sets up the cache for the the given solution path
 -- @param SolutionPath The path of the solution
 CacheManager.SetupCache = function(SolutionPath)
-    if(State.CacheRootInitialized == false) then
+    if State.CacheRootInitialized == false then
         print("Cache Root is not initalized doing nothing")
         return
     end
     local location = CacheManager.CacheRootLocation .. OSUtils.seperator .. CacheManager.HashString(SolutionPath)
 
-    local r = vim.fn.mkdir(location,"p")
+    local r = vim.fn.mkdir(location, "p")
     --log.information(string.format("Creation result for directory %s is %d",location,r))
     -- Directory already exists. Check if this is really ours or we are experiencing a colision
-    if(r == 1) then
+    if r == 1 then
         --print("Directory:".. location .." exists")
         local tab = CacheManager.ReadIndexFile(location)
-        if (tab == nil) then
+        if tab == nil then
             --No index file exists. It appears that the directory was just created!
-            CacheManager.WriteIndexFile(location,SolutionPath)
+            CacheManager.WriteIndexFile(location, SolutionPath)
             return
         end
         if tab.SolutionPath == SolutionPath then
             -- We are on the corect path and the solution is already setup nothing to do here
             print("Index verified nothing more to do")
-            log.information(string.format("Index verified for %s nothing more to do",tab.SolutionPath))
+            log.information(string.format("Index verified for %s nothing more to do", tab.SolutionPath))
             return
         end
         --print("Colision Detected!")
         -- We have a colision. Try the next name with the postfix with a loop
         local posfixNumber = 1
-        local newLoc = location .. "_"..posfixNumber
+        local newLoc = location .. "_" .. posfixNumber
         repeat
-            newLoc = location .. "_"..posfixNumber
-            r = vim.fn.mkdir(newLoc,"p")
-            if(r == 1) then
+            newLoc = location .. "_" .. posfixNumber
+            r = vim.fn.mkdir(newLoc, "p")
+            if r == 1 then
                 tab = CacheManager.ReadIndexFile(newLoc)
                 posfixNumber = posfixNumber + 1
-            elseif (r == 0) then
-                CacheManager.WriteIndexFile(newLoc,SolutionPath)
+            elseif r == 0 then
+                CacheManager.WriteIndexFile(newLoc, SolutionPath)
                 tab = CacheManager.ReadIndexFile(newLoc)
             end
-        until(tab.SolutionPath == SolutionPath)
-        log.information(string.format("After colision resolution, index for %s verified at %s",tab.SolutionPath,newLoc))
+        until tab.SolutionPath == SolutionPath
+        log.information(
+            string.format("After colision resolution, index for %s verified at %s", tab.SolutionPath, newLoc)
+        )
     end
     -- Windows code 0 is sucess and 1 if the directory aloready exists
     -- There was sucess creating the directory.
@@ -125,9 +128,8 @@ CacheManager.SetupCache = function(SolutionPath)
     --    print("Directory:".. location .." created")
     --    CacheManager.WriteIndexFile(location,SolutionPath)
     --end
-    print("Failed to setup cache directory: "..location)
+    print("Failed to setup cache directory: " .. location)
 end
-
 
 --- Writes the index file in the cache directory
 CacheManager.WriteIndexFile = function(SolutionCacheDirectory, SolutionPath)
@@ -136,8 +138,8 @@ CacheManager.WriteIndexFile = function(SolutionCacheDirectory, SolutionPath)
     local indexData = {
         SolutionPath = SolutionPath,
     }
-    local indf = io.open(indexfile,"w")
-    if (indf ~= nil) then
+    local indf = io.open(indexfile, "w")
+    if indf ~= nil then
         local json = vim.json.encode(indexData)
         indf:write(json)
         io.close(indf)
@@ -149,9 +151,9 @@ end
 CacheManager.ReadIndexFile = function(SolutionCacheDirectory)
     local indexfile = SolutionCacheDirectory .. OSUtils.seperator .. "index.json"
 
-    local indf = io.open(indexfile,"r")
-    if(indf == nil) then
-        print("Could not read file:"..indexfile)
+    local indf = io.open(indexfile, "r")
+    if indf == nil then
+        print("Could not read file:" .. indexfile)
         return
     end
     local jsonData = indf:read("*a")
@@ -160,43 +162,41 @@ CacheManager.ReadIndexFile = function(SolutionCacheDirectory)
     return jsonTab
 end
 
-
 --- Writes the cache data to the solution cache directory
 -- @param SolutionPath The path of the solution for which we are writting cache data
 -- @param CacheData A lua table that represents all the cache data that is written
-CacheManager.WriteCacheData = function(SolutionPath,CacheData)
-    if(SolutionPath == nil) then
+CacheManager.WriteCacheData = function(SolutionPath, CacheData)
+    if SolutionPath == nil then
         return
     end
-    local location = CacheManager.ProvideCachePath(SolutionPath,"CacheData.json")
+    local location = CacheManager.ProvideCachePath(SolutionPath, "CacheData.json")
 
     local json = vim.json.encode(CacheData)
 
     local file = io.open(location, "w")
 
-    if(file ~= nil) then
+    if file ~= nil then
         -- Write the string to the file
         file:write(json)
 
         -- Close the file
         file:close()
     else
-        vim.notify("Cache Data Updated",vim.log.levels.ERROR,{title="Solution.nvim"})
+        vim.notify("Cache Data Updated", vim.log.levels.ERROR, { title = "Solution.nvim" })
     end
 end
-
 
 --- Reads the cache data for the given solution path and returns them as a lua table
 -- @param SolutionPath The path of the solution for which we are reading cache data
 CacheManager.ReadCacheData = function(SolutionPath)
-    if(SolutionPath == nil) then
+    if SolutionPath == nil then
         return
     end
-    local location = CacheManager.ProvideCachePath(SolutionPath,"CacheData.json")
+    local location = CacheManager.ProvideCachePath(SolutionPath, "CacheData.json")
 
     local file = io.open(location, "r")
 
-    if(file == nil) then
+    if file == nil then
         return nil
     end
 
@@ -206,7 +206,7 @@ CacheManager.ReadCacheData = function(SolutionPath)
     -- Close the file
     file:close()
 
-    if(json ~= nil) then
+    if json ~= nil then
         --vim.notify("Cache Data Loaded",vim.log.levels.INFO,{title = "Solution.nvim"})
         return json
     end
@@ -229,6 +229,5 @@ CacheManager.HashString = function(str)
     end
     return hash
 end
-
 
 return CacheManager

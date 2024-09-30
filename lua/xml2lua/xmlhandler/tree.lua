@@ -1,11 +1,11 @@
 local function init()
     local obj = {
         root = {},
-        options = {noreduce = {}}
+        options = { noreduce = {} },
     }
-    
-    obj._stack = {obj.root}  
-    return obj  
+
+    obj._stack = { obj.root }
+    return obj
 end
 
 --- @module XML Tree Handler.
@@ -29,7 +29,7 @@ end
 -- are ignored.
 --
 -- This format has some limitations - primarily
--- 
+--
 -- * Mixed-Content behaves unpredictably - the relationship
 --   between text elements and embedded tags is lost and
 --   multiple levels of mixed content does not work
@@ -74,17 +74,15 @@ end
 --- Recursively removes redundant vectors for nodes
 -- with single child elements
 function tree:reduce(node, key, parent)
-    for k,v in pairs(node) do
-        if type(v) == 'table' then
-            self:reduce(v,k,node)
+    for k, v in pairs(node) do
+        if type(v) == "table" then
+            self:reduce(v, k, node)
         end
     end
-    if #node == 1 and not self.options.noreduce[key] and 
-        node._attr == nil then
+    if #node == 1 and not self.options.noreduce[key] and node._attr == nil then
         parent[key] = node[1]
     end
 end
-
 
 --- If an object is not an array,
 -- creates an empty array and insert that object as the 1st element.
@@ -121,18 +119,18 @@ end
 function tree:starttag(tag)
     local node = {}
     if self.parseAttributes == true then
-        node._attr=tag.attrs
+        node._attr = tag.attrs
     end
 
     --Table in the stack representing the tag being processed
     local current = self._stack[#self._stack]
-    
+
     if current[tag.name] then
         local array = convertObjectToArray(current[tag.name])
         table.insert(array, node)
         current[tag.name] = array
     else
-        current[tag.name] = {node}
+        current[tag.name] = { node }
     end
 
     table.insert(self._stack, node)
@@ -145,9 +143,9 @@ end
 function tree:endtag(tag, s)
     --Table in the stack representing the tag being processed
     --Table in the stack representing the containing tag of the current tag
-    local prev = self._stack[#self._stack-1]
+    local prev = self._stack[#self._stack - 1]
     if not prev[tag.name] then
-        error("XML Error - Unmatched Tag ["..s..":"..tag.name.."]\n")
+        error("XML Error - Unmatched Tag [" .. s .. ":" .. tag.name .. "]\n")
     end
     if prev == self.root then
         -- Once parsing complete, recursively reduce tree

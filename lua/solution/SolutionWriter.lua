@@ -16,33 +16,43 @@ end
 local function WriteRawTextEntries(entries)
     -- entries is a table as follows:
     --entries = {
-    --    { lineNumber, string}, 
-    --    { lineNumber, string}, 
+    --    { lineNumber, string},
+    --    { lineNumber, string},
     --    { lineNumber, string}
     --}
     -- The _text containes tables with { lineNumbe, string}
     --
-    if (entries == nil) then
+    if entries == nil then
         return
     end
 
-    for key,entry in ipairs(entries) do
+    for key, entry in ipairs(entries) do
         -- Will the line that we are going to write have the same number as
         -- the one that is supposed to have???
-        if (entry[1] == lineCounter+1) then
+        if entry[1] == lineCounter + 1 then
             WriteLine(entry[2])
         end
     end
 end
 
 local function WriteProject(project)
-    local line = string.format("Project(\"{%s}\") = \"%s\", \"%s\", \"{%s}\"",project.TypeGUID,project.Name,project.RelPath,project.GUID)
+    local line = string.format(
+        'Project("{%s}") = "%s", "%s", "{%s}"',
+        project.TypeGUID,
+        project.Name,
+        project.RelPath,
+        project.GUID
+    )
     WriteLine(line)
-    if (#project._text > 0) then
+    if #project._text > 0 then
         -- The _text containes tables with { lineNumbe, string}
-        for k,entry in ipairs(project._text) do
-            if (entry[1] ~= lineCounter-1) then
-                local s = string.format("Line couter %d does not match with the line number %d been written",lineCounter-1,entry[1])
+        for k, entry in ipairs(project._text) do
+            if entry[1] ~= lineCounter - 1 then
+                local s = string.format(
+                    "Line couter %d does not match with the line number %d been written",
+                    lineCounter - 1,
+                    entry[1]
+                )
             end
             WriteLine(entry[2])
         end
@@ -51,15 +61,15 @@ local function WriteProject(project)
 end
 
 local function WriteSolutionConfigurationPlatforms(solution)
---	GlobalSection(SolutionConfigurationPlatforms) = preSolution
---		Debug|Any CPU = Debug|Any CPU
---		Release|Any CPU = Release|Any CPU
---		TestConfiguration|Any CPU = TestConfiguration|Any CPU
---	EndGlobalSection
+    --	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+    --		Debug|Any CPU = Debug|Any CPU
+    --		Release|Any CPU = Release|Any CPU
+    --		TestConfiguration|Any CPU = TestConfiguration|Any CPU
+    --	EndGlobalSection
     WriteLine("\tGlobalSection(SolutionConfigurationPlatforms) = preSolution")
     -- TODO: Find a way to do it in order to be reproducible
-    for _,v in pairs(solution.SolutionConfigurations) do
-        local line = string.format("\t\t%s|%s = %s|%s",v[1],v[2],v[1],v[2])
+    for _, v in pairs(solution.SolutionConfigurations) do
+        local line = string.format("\t\t%s|%s = %s|%s", v[1], v[2], v[1], v[2])
         WriteLine(line)
     end
     WriteLine("\tEndGlobalSection")
@@ -67,11 +77,25 @@ end
 
 local function WriteProjectConfigurations(ProjectConfigurations)
     WriteLine("\tGlobalSection(ProjectConfigurationPlatforms) = postSolution")
-    for k,v in ipairs(ProjectConfigurations) do
-    --  {6185CC21-BE89-448A-B3C0-D1C27112E595}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-    --  {6185CC21-BE89-448A-B3C0-D1C27112E595}.Debug|Any CPU.Build.0 = Debug|Any CPU
-        local line1 = string.format("\t\t{%s}.%s|%s.ActiveCfg = %s|%s",v.ProjectGUID,v.SolutionConfiguration,v.SolutionPlatform,v.ProjectConfiguration,v.ProjectPlatform)
-        local line2 = string.format("\t\t{%s}.%s|%s.Build.0 = %s|%s",v.ProjectGUID,v.SolutionConfiguration,v.SolutionPlatform,v.ProjectConfiguration,v.ProjectPlatform)
+    for k, v in ipairs(ProjectConfigurations) do
+        --  {6185CC21-BE89-448A-B3C0-D1C27112E595}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+        --  {6185CC21-BE89-448A-B3C0-D1C27112E595}.Debug|Any CPU.Build.0 = Debug|Any CPU
+        local line1 = string.format(
+            "\t\t{%s}.%s|%s.ActiveCfg = %s|%s",
+            v.ProjectGUID,
+            v.SolutionConfiguration,
+            v.SolutionPlatform,
+            v.ProjectConfiguration,
+            v.ProjectPlatform
+        )
+        local line2 = string.format(
+            "\t\t{%s}.%s|%s.Build.0 = %s|%s",
+            v.ProjectGUID,
+            v.SolutionConfiguration,
+            v.SolutionPlatform,
+            v.ProjectConfiguration,
+            v.ProjectPlatform
+        )
         WriteLine(line1)
         WriteLine(line2)
     end
@@ -81,9 +105,9 @@ end
 SolutionWriter.WriteSolution = function(solution)
     local filename = solution.SolutionPath .. ".nvim"
     print("Writing Solution to:" .. filename)
-    
+
     -- Think about the mode again
-    local file = io.open(filename,"w+")
+    local file = io.open(filename, "w+")
     io.output(file)
 
     lineCounter = 0
@@ -97,7 +121,7 @@ SolutionWriter.WriteSolution = function(solution)
     -- In between each section that we are going to write. Make sure that we
     -- also output any lines that were collected
     WriteRawTextEntries(solution._text)
-    for k,v in ipairs(solution.Projects) do
+    for k, v in ipairs(solution.Projects) do
         WriteProject(v)
     end
     WriteRawTextEntries(solution._text)

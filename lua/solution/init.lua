@@ -20,7 +20,7 @@ local CacheManager = require("solution.CacheManager")
 -- in an upstream directory
 local SolutionSelectionPolicies = {
     First = "first",
-    Selection = "selection"
+    Selection = "selection",
 }
 
 -- File filename of the solution or project that is beeing parsed.
@@ -49,15 +49,14 @@ local SolutionConfig = {
     DefaultBuildPlatform = "Any CPU",
     Display = { -- Controls options for popup windows.
         RemoveCR = true,
-        HideCompilationWarnings = true
+        HideCompilationWarnings = true,
     },
 }
-
 
 --- Define user options for the plugin configuration
 -- @param config The user options configuraton object
 solution.setup = function(config)
-    if (config == nil or config == {}) then
+    if config == nil or config == {} then
         -- No configuration use default options that have already been predefined.
         return
     else
@@ -65,33 +64,85 @@ solution.setup = function(config)
     end
 
     local r = solution.ValidateConfiguration(SolutionConfig)
-    if(not r) then
-        vim.notify("Invalid configuration!",vim.log.levels.ERROR,{title="Solution.nvim"})
-        return;
+    if not r then
+        vim.notify("Invalid configuration!", vim.log.levels.ERROR, { title = "Solution.nvim" })
+        return
     end
 
     solution.GetCompilerVersion()
 
-    vim.api.nvim_create_user_command("SolLoadSolution"                  , solution.LoadSolution                  , {desc = "Loads a solution in memory"                                                                   } )
-    vim.api.nvim_create_user_command("SolDisplaySolution"               , solution.DisplaySolution               , {desc = "Displays the loaded solution"                                                                 } )
-    vim.api.nvim_create_user_command("SolDisplayOutputs"                , solution.DisplayOutputs                , {desc = "Displays the .dll executables that this solution produces"                                    } )
-    vim.api.nvim_create_user_command("SolDisplayExecutionScheme"        , solution.DisplayExecutionScheme        , {desc = "Displays the current solution configuration and platform. Also displays the solution outputs" } )
-    vim.api.nvim_create_user_command("SolDisplayStartupProjectProfiles" , solution.DisplayStartupProjectProfiles , {desc = "Displays the project profiles for the startup project"                                        } )
-    vim.api.nvim_create_user_command("SolSelectBuildConfiguration"      , solution.SelectBuildConfiguration      , {desc = "Select Active Build Configuration"                                                            } )
-    vim.api.nvim_create_user_command("SolSelectPlatform"                , solution.SelectBuildPlatform           , {desc = "Select Active Build Platform"                                                                 } )
-    vim.api.nvim_create_user_command("SolSelectWaringDisplay"           , solution.SelectWaringDisplay           , {desc = "Select if compilation warnings populate the quickfix list"                                    } )
-    vim.api.nvim_create_user_command("SolSelectStartupProject"          , solution.SelectStartupProject          , {desc = "Select the solution startup project"                                                          } )
-    vim.api.nvim_create_user_command("SolSelectLaunchProfile"           , solution.SelectLaunchProfile           , {desc = "Select a launch profile from launchSettings.json"                                             } )
-    vim.api.nvim_create_user_command("SolSelectTest"                    , solution.SetTest                       , {desc = "Select a test for debug"                                                                      } )
-    vim.api.nvim_create_user_command("SolExecuteTest"                   , solution.TestSelected                  , {desc = "Execute Test"                                                                                 } )
-    vim.api.nvim_create_user_command("SolLaunchSolution"                , solution.LaunchSolution                , {desc = "Launch the solution"                                                                          } )
-    vim.api.nvim_create_user_command("SolCompileSolution"               , solution.Compile                       , {desc = "Compiles the currently loaded solution"                                                       } )
-    vim.api.nvim_create_user_command("SolListTest"                      , solution.PickTests                      , {desc = "Gets the solution tests"                                                       } )
+    vim.api.nvim_create_user_command("SolLoadSolution", solution.LoadSolution, {
+        desc = "Loads a solution in memory",
+    })
+    vim.api.nvim_create_user_command(
+        "SolDisplaySolution",
+        solution.DisplaySolution,
+        { desc = "Displays the loaded solution" }
+    )
+    vim.api.nvim_create_user_command(
+        "SolDisplayOutputs",
+        solution.DisplayOutputs,
+        { desc = "Displays the .dll executables that this solution produces" }
+    )
+    vim.api.nvim_create_user_command(
+        "SolDisplayExecutionScheme",
+        solution.DisplayExecutionScheme,
+        { desc = "Displays the current solution configuration and platform. Also displays the solution outputs" }
+    )
+    vim.api.nvim_create_user_command(
+        "SolDisplayStartupProjectProfiles",
+        solution.DisplayStartupProjectProfiles,
+        { desc = "Displays the project profiles for the startup project" }
+    )
+    vim.api.nvim_create_user_command(
+        "SolSelectBuildConfiguration",
+        solution.SelectBuildConfiguration,
+        { desc = "Select Active Build Configuration" }
+    )
+    vim.api.nvim_create_user_command(
+        "SolSelectPlatform",
+        solution.SelectBuildPlatform,
+        { desc = "Select Active Build Platform" }
+    )
+    vim.api.nvim_create_user_command(
+        "SolSelectWaringDisplay",
+        solution.SelectWaringDisplay,
+        { desc = "Select if compilation warnings populate the quickfix list" }
+    )
+    vim.api.nvim_create_user_command(
+        "SolSelectStartupProject",
+        solution.SelectStartupProject,
+        { desc = "Select the solution startup project" }
+    )
+    vim.api.nvim_create_user_command(
+        "SolSelectLaunchProfile",
+        solution.SelectLaunchProfile,
+        { desc = "Select a launch profile from launchSettings.json" }
+    )
+    vim.api.nvim_create_user_command("SolSelectTest", solution.SetTest, {
+        desc = "Select a test for debug",
+    })
+    vim.api.nvim_create_user_command("SolExecuteTest", solution.TestSelected, {
+        desc = "Execute Test",
+    })
+    vim.api.nvim_create_user_command("SolLaunchSolution", solution.LaunchSolution, {
+        desc = "Launch the solution",
+    })
+    vim.api.nvim_create_user_command(
+        "SolCompileSolution",
+        solution.Compile,
+        { desc = "Compiles the currently loaded solution" }
+    )
+    vim.api.nvim_create_user_command("SolListTest", solution.PickTests, {
+        desc = "Gets the solution tests",
+    })
     -- Execute test in debug mode
-    vim.api.nvim_create_user_command("SolDebugTest"           , function() TestManager.DebugTest(TestFunctionName) end          , {desc = "Select a test for debug"                    } )
-    vim.api.nvim_create_user_command("SolDebugCSProgram"           , solution.GetCSProgram , {desc = "A Small debug test"                    } )
-
-
+    vim.api.nvim_create_user_command("SolDebugTest", function()
+        TestManager.DebugTest(TestFunctionName)
+    end, { desc = "Select a test for debug" })
+    vim.api.nvim_create_user_command("SolDebugCSProgram", solution.GetCSProgram, {
+        desc = "A Small debug test",
+    })
 
     --Generate the cache directory.
     CacheManager.CreateCacheRoot()
@@ -102,10 +153,11 @@ solution.setup = function(config)
     SolutionManager.SetBuildPlatform(SolutionConfig.DefaultBuildPlatform)
 
     --Setup autocommand to autoload the solution
-    local SolutionNvimSolutionAutoLoader = vim.api.nvim_create_augroup("SolutionNvimSolutionAutoLoader", { clear = true })
+    local SolutionNvimSolutionAutoLoader =
+        vim.api.nvim_create_augroup("SolutionNvimSolutionAutoLoader", { clear = true })
 
     vim.api.nvim_create_autocmd("BufEnter", {
-        pattern = {"*.cs,*.csproj,*.sln"},
+        pattern = { "*.cs,*.csproj,*.sln" },
         --command = solution.LoadSolution,
         callback = solution.LoadSolution,
         group = SolutionNvimSolutionAutoLoader,
@@ -168,50 +220,48 @@ solution.LaunchSolution = function()
 end
 -----------------------------------------------------------------------------
 
-
 solution.ValidateConfiguration = function(config)
     local RequiredConfigKeys = {
-        ["SolutionSelectionPolicy"]   = true,
+        ["SolutionSelectionPolicy"] = true,
         ["DefaultBuildConfiguration"] = true,
-        ["DefaultBuildPlatform"]      = true,
-        ["Display"]                   = true
+        ["DefaultBuildPlatform"] = true,
+        ["Display"] = true,
     }
 
     local RequiredDisplayKeys = {
-        ["RemoveCR"]                = true,
-        ["HideCompilationWarnings"] = true
+        ["RemoveCR"] = true,
+        ["HideCompilationWarnings"] = true,
     }
 
-
     for key, _ in pairs(RequiredConfigKeys) do
-        if(config[key] == nil) then
-            print(string.format("Key %s not found!",key))
+        if config[key] == nil then
+            print(string.format("Key %s not found!", key))
             return false
         end
     end
 
     local checkOk = false
-    for _,v in pairs(SolutionSelectionPolicies) do
-        if(config.SolutionSelectionPolicy == v) then
+    for _, v in pairs(SolutionSelectionPolicies) do
+        if config.SolutionSelectionPolicy == v then
             checkOk = true
         end
     end
-    if(checkOk == false) then
+    if checkOk == false then
         return false
     end
 
     -- Build configuration may be any string
-    if(type(config.DefaultBuildConfiguration) ~= "string") then
+    if type(config.DefaultBuildConfiguration) ~= "string" then
         return false
     end
 
-    if(type(config.Display) ~= "table") then
+    if type(config.Display) ~= "table" then
         return false
     end
 
     for key, _ in pairs(RequiredDisplayKeys) do
-        if(config.Display[key] == nil) then
-            print(string.format("Key Display.%s not found!",key))
+        if config.Display[key] == nil then
+            print(string.format("Key Display.%s not found!", key))
             return false
         end
     end
@@ -219,30 +269,28 @@ solution.ValidateConfiguration = function(config)
     return true
 end
 
-
 solution.SelectWaringDisplay = function()
     local items = {
         "Show Warnings",
         "Hide Warnings",
     }
     local opts = {
-        prompt = "When compiling:"
+        prompt = "When compiling:",
     }
 
-    local SelectionHandler = function(item,_) -- Discard index
+    local SelectionHandler = function(item, _) -- Discard index
         if not item then
             return
         end
-        if(item == "Show Warnings") then
+        if item == "Show Warnings" then
             SolutionConfig.Display.HideCompilationWarnings = false
         else
             SolutionConfig.Display.HideCompilationWarnings = true
         end
     end
 
-    vim.ui.select(items,opts,SelectionHandler)
+    vim.ui.select(items, opts, SelectionHandler)
 end
-
 
 solution.CleanByFilename = function(filename)
     -- dotnet build [<PROJECT | SOLUTION>...] [options]
@@ -260,8 +308,8 @@ solution.CleanByFilename = function(filename)
         if event == "stdout" or event == "stderr" then
             -- If we have data, then append them to the lines array
             if data then
-                for _,theLine in ipairs(data) do
-                    window.AddLine(theLine,SolutionConfig.Display.RemoveCR)
+                for _, theLine in ipairs(data) do
+                    window.AddLine(theLine, SolutionConfig.Display.RemoveCR)
                 end
             end
         end
@@ -275,7 +323,7 @@ solution.CleanByFilename = function(filename)
     end
 
     -- https://phelipetls.github.io/posts/async-make-in-nvim-with-lua/
-    local _ = vim.fn.jobstart(command,{
+    local _ = vim.fn.jobstart(command, {
         on_stderr = on_event,
         on_stdout = on_event,
         on_exit = on_event,
@@ -296,8 +344,8 @@ solution.TestByFilename = function(filename)
         if event == "stdout" or event == "stderr" then
             -- If we have data, then append them to the lines array
             if data then
-                for _,theLine in ipairs(data) do
-                    window.AddLine(theLine,SolutionConfig.Display.RemoveCR)
+                for _, theLine in ipairs(data) do
+                    window.AddLine(theLine, SolutionConfig.Display.RemoveCR)
                 end
             end
         end
@@ -311,7 +359,7 @@ solution.TestByFilename = function(filename)
     end
 
     -- https://phelipetls.github.io/posts/async-make-in-nvim-with-lua/
-    local _ = vim.fn.jobstart(command,{
+    local _ = vim.fn.jobstart(command, {
         on_stderr = on_event,
         on_stdout = on_event,
         on_exit = on_event,
@@ -319,7 +367,6 @@ solution.TestByFilename = function(filename)
         --stderr_buffered = true,
     })
 end
-
 
 solution.GetCompilerVersion = function()
     local command = "dotnet build --version"
@@ -329,13 +376,13 @@ solution.GetCompilerVersion = function()
     -- Inputs are -> job_id, data, event
     local function HandleData(_, data, _)
         -- Handle Data Written to stdout
-        count = count+1
+        count = count + 1
         if data then
             CompilerVersion = data[2]
         end
     end
 
-    local _ = vim.fn.jobstart(command,{
+    local _ = vim.fn.jobstart(command, {
         on_stdout = HandleData,
         stdout_buffered = true,
         stderr_buffered = true,
@@ -343,7 +390,7 @@ solution.GetCompilerVersion = function()
 end
 
 local function OnSelection(table, index)
-    if(index == nil) then
+    if index == nil then
         filenameSLN = nil
         return
     end
@@ -355,24 +402,23 @@ end
 -- Ask for selection
 solution.AskForSelection = function(options)
     local ProjectOrSolution = Path.FindUpstreamFilesByExtension(".sln")
-    if(ProjectOrSolution == nil) then
+    if ProjectOrSolution == nil then
         print("No solution file found")
         ProjectOrSolution = Path.FindUpstreamFilesByExtension(".csproj")
-        if(ProjectOrSolution == nil) then
+        if ProjectOrSolution == nil then
             return
         end
     end
 
-
     SelectionOptions = {
-        prompt = "Select file to compile.."
+        prompt = "Select file to compile..",
     }
 
-    vim.ui.select(ProjectOrSolution,SelectionOptions,OnSelection)
+    vim.ui.select(ProjectOrSolution, SelectionOptions, OnSelection)
 end
 
-solution.GetCSProgram= function()
-    return SolutionManager.GetCSProgram();
+solution.GetCSProgram = function()
+    return SolutionManager.GetCSProgram()
 end
 
 --- Locates the .sln starting from the location of the file that is currently being
@@ -380,23 +426,26 @@ end
 -- This is private member and we reserve the right to change it any time.
 -- @param options The plugin configuration options
 solution.FindAndLoadSolution = function(options)
-
     local filename = nil
     -- If no options are provided use the default options.
     if not options then
         options = SolutionConfig
     end
 
-    if(options.SolutionSelectionPolicy == SolutionSelectionPolicies.First ) then
+    if options.SolutionSelectionPolicy == SolutionSelectionPolicies.First then
         -- Do not select file. Find the first applicable file.
         local slnFile = Path.FindUpstreamFilesByExtension(".sln")
-        if(slnFile == nil ) then
+        if slnFile == nil then
             -- No solution file found. Try to fall back to a csproj
-            vim.notify("No sln file located. Trying to locate csproj file.",vim.log.levels.WARN, {title="Solution.nvim"})
+            vim.notify(
+                "No sln file located. Trying to locate csproj file.",
+                vim.log.levels.WARN,
+                { title = "Solution.nvim" }
+            )
             slnFile = Path.FindUpstreamFilesByExtension(".csproj")
-            if(slnFile == nil ) then
+            if slnFile == nil then
                 log.error("No .csproj file located!")
-                vim.notify("No .csproj file located!",vim.log.levels.ERROR, {title="Solution.nvim"})
+                vim.notify("No .csproj file located!", vim.log.levels.ERROR, { title = "Solution.nvim" })
                 return 1
             else
                 filename = slnFile[1]
@@ -405,7 +454,7 @@ solution.FindAndLoadSolution = function(options)
             filename = slnFile[1]
             filenameSLN = slnFile[1]
         end
-    elseif (options.SolutionSelectionPolicy == SolutionSelectionPolicies.Selection) then
+    elseif options.SolutionSelectionPolicy == SolutionSelectionPolicies.Selection then
         -- Select file
         solution.AskForSelection(options)
     else
@@ -417,56 +466,55 @@ solution.FindAndLoadSolution = function(options)
         return 2
     end
 
-    if(SolutionManager.Solution == nil or SolutionManager.Solution.SolutionPath ~= filename) then
+    if SolutionManager.Solution == nil or SolutionManager.Solution.SolutionPath ~= filename then
         -- Parse Solution
         SolutionManager.Solution = SolutionParser.ParseSolution(filename)
         CacheManager.SetupCache(SolutionManager.Solution.SolutionPath)
-        vim.notify("Loaded "..filename,vim.log.levels.INFO, {title="Solution.nvim"})
+        vim.notify("Loaded " .. filename, vim.log.levels.INFO, { title = "Solution.nvim" })
 
         -- TODO: Check the projects if there are test projects then parse the
         -- the tests.
         require("solution.TestManager").GetTests(filename)
 
         local CacheData = CacheManager.ReadCacheData(SolutionManager.Solution.SolutionPath)
-        if(CacheData ~= nil) then
+        if CacheData ~= nil then
             SolutionManager.HandleCacheData(CacheData)
         end
     end
 end
 
-
-solution.PerformCommand = function(command,options)
+solution.PerformCommand = function(command, options)
     -- This wil popoulate the filenameSLN value
     solution.FindAndLoadSolution(options)
     if not filenameSLN then
-        vim.notify("No project or solution detected.",vim.log.levels.ERROR, {title="Solution.nvim"})
+        vim.notify("No project or solution detected.", vim.log.levels.ERROR, { title = "Solution.nvim" })
         return
     end
 
-    if (command == "clean") then
+    if command == "clean" then
         solution.CleanByFilename(filenameSLN)
         return
     end
 
-    if (command == "test") then
+    if command == "test" then
         solution.TestByFilename(filenameSLN)
         return
     end
 
-    if (command == "ListTest") then
+    if command == "ListTest" then
         local tm = require("solution.TestManager")
         tm.GetTests(filenameSLN)
         return
     end
 end
 
-solution.Clean= function(options)
+solution.Clean = function(options)
     solution.PerformCommand("clean", options)
 end
 
 solution.LaunchProject = function()
     -- Get Current Startup project.
-    -- Get active profile if a Properties directory exist 
+    -- Get active profile if a Properties directory exist
 end
 
 solution.Test = function()
@@ -476,16 +524,16 @@ end
 --- Execute a single test.
 solution.TestSelected = function()
     local tm = require("solution.TestManager")
-    if(TestProject == nil) then
-        vim.notify("Test project is nil noothing to execute",vim.log.levels.WARN,{title="Solution.nvim"})
+    if TestProject == nil then
+        vim.notify("Test project is nil noothing to execute", vim.log.levels.WARN, { title = "Solution.nvim" })
         return
     end
 
-    if(TestFunctionName == nil) then
-        vim.notify("No test function selected. Nothing to execute",vim.log.levels.WARN,{title="Solution.nvim"})
+    if TestFunctionName == nil then
+        vim.notify("No test function selected. Nothing to execute", vim.log.levels.WARN, { title = "Solution.nvim" })
     end
 
-    tm.ExecuteSingleTest(TestProject,TestFunctionName)
+    tm.ExecuteSingleTest(TestProject, TestFunctionName)
 end
 
 solution.PickTests = function()
@@ -497,7 +545,6 @@ solution.GetTests = function()
     local tm = require("solution.TestManager")
     local tests = tm.GetTests(filenameSLN)
 
-
     -- TODO if tests more than zero
     local window = win.new("=== TESTS ===")
     window.PaintWindow()
@@ -507,12 +554,12 @@ solution.GetTests = function()
 
     local i = 0
     local prev = 0
-    while(true) do
-        i,_ = string.find(str,"\n",i+1)
-        if(i == nil) then
+    while true do
+        i, _ = string.find(str, "\n", i + 1)
+        if i == nil then
             break
         end
-        local line = string.sub(str,prev+1,i-1)
+        local line = string.sub(str, prev + 1, i - 1)
         window.AddLine(line)
         prev = i
     end
@@ -522,15 +569,15 @@ end
 solution.SetTest = function()
     local tm = require("solution.TestManager")
     local s = tm.GetTestUnderCursor()
-    if (s ~= nil) then
+    if s ~= nil then
         local project = Path.FindUpstreamFilesByExtension(".csproj")
-        if(project[1] == nil ) then
+        if project[1] == nil then
             return
         else
             TestProject = project[1]
             TestFunctionName = s
             local msg = string.format("Selected test %s:", s)
-            vim.notify(msg, vim.log.levels.INFO, {title="Solution.nvim"})
+            vim.notify(msg, vim.log.levels.INFO, { title = "Solution.nvim" })
         end
     end
 end
@@ -542,13 +589,12 @@ solution.ClearTest = function()
 end
 
 --- Clears the test that will be invoked by the TestSelected method.
-solution.WriteSolution= function()
+solution.WriteSolution = function()
     local p = require("solution.SolutionParser")
     local s = p.ParseSolution("C:/users/Admin/source/repos/MVEnc/MVEnc.sln")
 
     local p = require("solution.SolutionWriter").WriteSolution(s)
 end
-
 
 solution.FunctionTest = function()
     local p = require("solution.SolutionParser")
@@ -560,6 +606,5 @@ solution.FunctionTest = function()
     --local p = require("solution.ProjectParser")
     --p.GetBinaryOutput("C:/users/Admin/source/repos/AIStream/AIStream.sln")
 end
-
 
 return solution

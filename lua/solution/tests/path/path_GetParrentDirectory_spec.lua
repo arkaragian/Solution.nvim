@@ -9,14 +9,13 @@
 -- nvim --headless -c 'PlenaryBustedDirectory . {minimal_init = "./minimal_init.lua"}'
 
 -- import the luassert.mock module
-local mock = require('luassert.mock')
-local stub = require('luassert.stub')
+local mock = require("luassert.mock")
+local stub = require("luassert.stub")
 
-
-describe("Parrent Directory Tests:",function()
+describe("Parrent Directory Tests:", function()
     it("file", function()
         local m = require("solution.path")
         local r = m.GetFileExtension("file")
-        assert.equal(nil,r)
+        assert.equal(nil, r)
     end)
 end)

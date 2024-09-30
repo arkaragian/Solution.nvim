@@ -1,8 +1,8 @@
 local function init()
     return {
-        options = {commentNode=1, piNode=1, dtdNode=1, declNode=1},
+        options = { commentNode = 1, piNode = 1, dtdNode = 1, declNode = 1 },
         current = { _children = {}, _type = "ROOT" },
-        _stack = {}
+        _stack = {},
     }
 end
 
@@ -56,11 +56,7 @@ end
 -- where name is the name of the tag and attrs
 -- is a table containing the attributes of the tag
 function dom:starttag(tag)
-    local node = { _type = 'ELEMENT',
-                   _name = tag.name,
-                   _attr = tag.attrs,
-                   _children = {}
-                 }
+    local node = { _type = "ELEMENT", _name = tag.name, _attr = tag.attrs, _children = {} }
 
     if self.root == nil then
         self.root = node
@@ -81,7 +77,7 @@ function dom:endtag(tag, s)
     local prev = self._stack[#self._stack]
 
     if tag.name ~= prev._name then
-        error("XML Error - Unmatched Tag ["..s..":"..tag.name.."]\n")
+        error("XML Error - Unmatched Tag [" .. s .. ":" .. tag.name .. "]\n")
     end
 
     table.remove(self._stack)
@@ -91,9 +87,7 @@ end
 ---Parses a tag content.
 -- @param text text to process
 function dom:text(text)
-    local node = { _type = "TEXT",
-                   _text = text
-                 }
+    local node = { _type = "TEXT", _text = text }
     table.insert(self.current._children, node)
 end
 
@@ -101,9 +95,7 @@ end
 -- @param text comment text
 function dom:comment(text)
     if self.options.commentNode then
-        local node = { _type = "COMMENT",
-                       _text = text
-                     }
+        local node = { _type = "COMMENT", _text = text }
         table.insert(self.current._children, node)
     end
 end
@@ -114,10 +106,7 @@ end
 -- is a table containing the attributes of the tag
 function dom:pi(tag)
     if self.options.piNode then
-        local node = { _type = "PI",
-                       _name = tag.name,
-                       _attr = tag.attrs,
-                     }
+        local node = { _type = "PI", _name = tag.name, _attr = tag.attrs }
         table.insert(self.current._children, node)
     end
 end
@@ -128,10 +117,7 @@ end
 -- is a table containing the attributes of the tag
 function dom:decl(tag)
     if self.options.declNode then
-        local node = { _type = "DECL",
-		       _name = tag.name,
-		       _attr = tag.attrs,
-                    }
+        local node = { _type = "DECL", _name = tag.name, _attr = tag.attrs }
         table.insert(self.current._children, node)
     end
 end
@@ -142,10 +128,7 @@ end
 -- is a table containing the attributes of the tag
 function dom:dtd(tag)
     if self.options.dtdNode then
-        local node = { _type = "DTD",
-                       _name = tag.name,
-                       _attr = tag.attrs,
-                     }
+        local node = { _type = "DTD", _name = tag.name, _attr = tag.attrs }
         table.insert(self.current._children, node)
     end
 end

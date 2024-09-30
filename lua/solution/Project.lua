@@ -10,7 +10,6 @@ local handler = require("xml2lua.xmlhandler.tree")
 local path = require("solution.path")
 local os = require("solution.osutils")
 
-
 local Project = {}
 
 --- Parses a given XML project file into a Lua table.
@@ -21,7 +20,6 @@ local Project = {}
 -- @treturn table The root element of the parsed XML as a Lua table.
 -- @usage local projectRoot = Project.ParseProject("/path/to/project.xml")
 Project.ParseProject = function(filename)
-
     --Uses a handler that converts the XML to a Lua table
     local xml = xml2lua.loadFile(filename)
 
@@ -42,18 +40,18 @@ end
 Project.GetProjectProfileNames = function(ProjectPath)
     --From the project path find the project "Properties" directory
     --Decode the Json and list the tiems alphabeticaly(?)
-    local pd = path.GetParrentDirectory(ProjectPath,os.seperator)
+    local pd = path.GetParrentDirectory(ProjectPath, os.seperator)
     local lsfile = pd .. os.seperator .. "Properties" .. os.seperator .. "launchSettings.json"
 
     local f = io.open(lsfile, "r")
-    if (f == nil) then
+    if f == nil then
         return
     end
 
     local json = f:read("*a")
     local jsonTab = vim.json.decode(json)
 
-    if(jsonTab == nil or jsonTab.profiles == nil) then
+    if jsonTab == nil or jsonTab.profiles == nil then
         return
     end
 
@@ -77,7 +75,6 @@ Project.GetArgStringFromProfile = function(profile)
     return profile.commandLineArgs
 end
 
-
 --- Launches a specified .NET project using the given launch profile.
 -- This function will run the .NET project by constructing a command string
 -- with the project path and launch profile, and then executing the command
@@ -86,18 +83,18 @@ end
 -- @tparam string ProjectPath The path to the .NET project to be launched.
 -- @tparam string profile The launch profile that supplies the command-line arguments.
 -- @usage Project.LaunchProject("/path/to/project", "Development")
-Project.LaunchProject = function(ProjectPath,profile)
+Project.LaunchProject = function(ProjectPath, profile)
     -- In order to execute a project we need the following:
     -- 1 The launch profile that supplies the command line arguments
-    -- 2 
-    local command = string.format("!dotnet run --project %s --launch-profile %s<CR>",ProjectPath,profile)
+    -- 2
+    local command = string.format("!dotnet run --project %s --launch-profile %s<CR>", ProjectPath, profile)
     vim.cmd(command)
     --local _ = vim.fn.jobstart(command,{
-        --on_stderr = on_event,
-        --on_stdout = on_event,
-        --on_exit = on_event,
-        --stdout_buffered = true,
-        --stderr_buffered = true,
+    --on_stderr = on_event,
+    --on_stdout = on_event,
+    --on_exit = on_event,
+    --stdout_buffered = true,
+    --stderr_buffered = true,
     --})
 end
 

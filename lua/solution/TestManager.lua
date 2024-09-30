@@ -9,7 +9,6 @@ local utils = require("solution.utils")
 --- This is async populated
 local TestList = {}
 
-
 -- The previous line that we parsed in "dotnet test"
 local PreviousLine = nil
 
@@ -18,22 +17,24 @@ TestManager.State = {
     TestList = {},
     -- Holds the state of the "parser" as we list the tests with "dotnet test"
     -- The states are two. None and parsing
-    TestListParsingState = "none"
+    TestListParsingState = "none",
 }
 
-
 local win = require("solution.window")
-
 
 --- The exit callback that is called when the dotnet test command finishes
 -- @param jobid is discarted
 -- @param data is discarted
 -- @param event should always be exit
 local function ReceiveTestListResultsExitCallback(_, _, event)
-    if(event == "exit") then
+    if event == "exit" then
         TestManager.State.TestListParsingState = "none"
         PreviousLine = nil
-        vim.notify("Test Detection Finished. ".. utils.Length(TestManager.State.TestList) .. " Tests found." ,vim.log.levels.INFO,{title = "Solution.nvim"})
+        vim.notify(
+            "Test Detection Finished. " .. utils.Length(TestManager.State.TestList) .. " Tests found.",
+            vim.log.levels.INFO,
+            { title = "Solution.nvim" }
+        )
     end
 end
 
@@ -47,13 +48,13 @@ end
 -- @return a string value
 local function ReceiveTestListResultsCallback(_, data, _, update_picker)
     -- Just return if we have no data
-    if(data == nil) then
+    if data == nil then
         return
     end
 
     -- The exit code will also be written in the standard output.
-    if(type(data) == "number") then
-        if(data ~= 0) then
+    if type(data) == "number" then
+        if data ~= 0 then
             print("Could not retreive tests error code: " .. data)
         end
         return
@@ -66,32 +67,32 @@ local function ReceiveTestListResultsCallback(_, data, _, update_picker)
     -- Tha value of this is reset in each execution
     local line = ""
 
-    print("Line variable before concat \"" .. line .."\"");
+    print('Line variable before concat "' .. line .. '"')
 
     -- Concat data to single line
-    for _,lineSegment in ipairs(data) do
-        print("Adding: \"" .. lineSegment .. "\"");
+    for _, lineSegment in ipairs(data) do
+        print('Adding: "' .. lineSegment .. '"')
         line = line .. lineSegment
     end
 
-    if(TestManager.State.TestListParsingState == "none") then
+    if TestManager.State.TestListParsingState == "none" then
         --- The start location that string.find returns for the pattern
         local start
         -- dotnet test --list-tests gives out the following file before
         -- outputing the tests: "The following Tests are available:"
         -- If we find this line then we can commence the parsing.
-        start, _= string.find(line,"The following Tests are available:")
+        start, _ = string.find(line, "The following Tests are available:")
 
         -- We have found the magic string. What comes next are test names
         -- change our state.
-        if(start ~= nil) then
+        if start ~= nil then
             TestManager.State.TestListParsingState = "parsing"
         end
         return
     end
 
-    if(TestManager.State.TestListParsingState == "parsing") then
-        if(line == "") then
+    if TestManager.State.TestListParsingState == "parsing" then
+        if line == "" then
             return
         end
 
@@ -100,15 +101,15 @@ local function ReceiveTestListResultsCallback(_, data, _, update_picker)
         -- We need to find the last test that was not parsed from the
         -- previous line and prepend it to this line so that it will parsed
         -- normally.
-        if(string.sub(line,1,1) =="\r" and PreviousLine ~= nil) then
+        if string.sub(line, 1, 1) == "\r" and PreviousLine ~= nil then
             local lfIndex = 0
-            local lfPrev  = 1
+            local lfPrev = 1
             repeat
-                lfIndex = string.find(line,"\r",lfIndex+1)
-                if(lfIndex == nil) then
-                    local s = string.sub(PreviousLine,lfPrev,string.len(PreviousLine))
+                lfIndex = string.find(line, "\r", lfIndex + 1)
+                if lfIndex == nil then
+                    local s = string.sub(PreviousLine, lfPrev, string.len(PreviousLine))
                     local testName = s:gsub("^%s+", ""):gsub("%s+$", "")
-                    table.insert(TestManager.State.TestList,testName)
+                    table.insert(TestManager.State.TestList, testName)
                     --print("Inserting Test:" .. testName)
                     if update_picker then
                         update_picker(testName)
@@ -116,7 +117,7 @@ local function ReceiveTestListResultsCallback(_, data, _, update_picker)
                 else
                     lfPrev = lfIndex
                 end
-            until(lfIndex == nil)
+            until lfIndex == nil
         end
 
         -- At this point we may receive multiple tests that are seperated
@@ -125,17 +126,17 @@ local function ReceiveTestListResultsCallback(_, data, _, update_picker)
         -- start with the \r character. We need to make sure that this also
         -- works on linux
         local lfIndex = 0
-        local lfPrev  = 1
+        local lfPrev = 1
         repeat
-            lfIndex = string.find(line,"\r",lfIndex+1)
-            if(lfIndex ~= nil) then
-                local s = string.sub(line,lfPrev,lfIndex-1)
+            lfIndex = string.find(line, "\r", lfIndex + 1)
+            if lfIndex ~= nil then
+                local s = string.sub(line, lfPrev, lfIndex - 1)
                 --Remove spaces. Copied from http://lua-users.org/wiki/StringTrim
                 local testName = s:gsub("^%s+", ""):gsub("%s+$", "")
                 -- This happens if the line that is processed starts with \r.
                 -- We have alrady hanled this.
-                if(testName ~= "") then
-                    table.insert(TestManager.State.TestList,testName)
+                if testName ~= "" then
+                    table.insert(TestManager.State.TestList, testName)
                     -- print("Inserting Test:" .. testName)
                     if update_picker then
                         update_picker(testName)
@@ -144,12 +145,10 @@ local function ReceiveTestListResultsCallback(_, data, _, update_picker)
                 lfPrev = lfIndex
             end
             PreviousLine = line
-        until(lfIndex == nil)
+        until lfIndex == nil
         return
     end
-
 end
-
 
 TestManager.GetTestUnderCursor = function()
     -- Principle of operation:
@@ -166,7 +165,7 @@ TestManager.GetTestUnderCursor = function()
 
     local expr = node
     while expr do
-        if expr:type() == 'method_declaration' then
+        if expr:type() == "method_declaration" then
             print("Found method declaration")
             break
         end
@@ -180,10 +179,10 @@ TestManager.GetTestUnderCursor = function()
     else
         -- For each child
         for child, _ in expr:iter_children() do
-            print(vim.inspect("Node type is ".. child:type()))
-            if(child:type() == "identifier") then
-                local s = vim.treesitter.get_node_text(child,0)
-                print("Got: " ..s)
+            print(vim.inspect("Node type is " .. child:type()))
+            if child:type() == "identifier" then
+                local s = vim.treesitter.get_node_text(child, 0)
+                print("Got: " .. s)
                 return s
             end
         end
@@ -196,12 +195,12 @@ end
 
 --- Executes the "dotnet test --list-tests" command and parses the resulting tests.
 TestManager.GetTests = function(solutionfile, update_picker)
-    if(solutionfile == nil) then
+    if solutionfile == nil then
         return nil
     end
 
     local ext = Path.GetFileExtension(solutionfile)
-    if(ext ~= ".sln") then
+    if ext ~= ".sln" then
         return nil
     end
 
@@ -209,7 +208,7 @@ TestManager.GetTests = function(solutionfile, update_picker)
     local command = "dotnet test " .. solutionfile .. " --list-tests"
     print(command)
 
-    local id = vim.fn.jobstart(command,{
+    local id = vim.fn.jobstart(command, {
         -- on_stderr = ReceiveTestListResultsCallback,
         -- on_stdout = ReceiveTestListResultsCallback,
         on_stderr = function(_, data, event)
@@ -220,35 +219,35 @@ TestManager.GetTests = function(solutionfile, update_picker)
         end,
         on_exit = ReceiveTestListResultsExitCallback,
     })
-    if(id == 0) then
-        vim.notify("Invalid arguments",vim.log.levels.ERROR,{title = "Solution.nvim Test Parsing"})
+    if id == 0 then
+        vim.notify("Invalid arguments", vim.log.levels.ERROR, { title = "Solution.nvim Test Parsing" })
     end
 
-    if(id == -1) then
-        vim.notify("Command or Shell is not Executable",vim.log.levels.ERROR,{title = "Solution.nvim Test Parsing"})
+    if id == -1 then
+        vim.notify("Command or Shell is not Executable", vim.log.levels.ERROR, { title = "Solution.nvim Test Parsing" })
     end
 
--- Returns |job-id| on success, 0 on invalid arguments (or job
--- table is full), -1 if {cmd}[0] or 'shell' is not executable.
--- The returned job-id is a valid |channel-id| representing the
--- job's stdio streams. Use |chansend()| (or |rpcnotify()| and
--- |rpcrequest()| if "rpc" was enabled) to send data to stdin and
--- |chanclose()| to close the streams without stopping the job.
+    -- Returns |job-id| on success, 0 on invalid arguments (or job
+    -- table is full), -1 if {cmd}[0] or 'shell' is not executable.
+    -- The returned job-id is a valid |channel-id| representing the
+    -- job's stdio streams. Use |chansend()| (or |rpcnotify()| and
+    -- |rpcrequest()| if "rpc" was enabled) to send data to stdin and
+    -- |chanclose()| to close the streams without stopping the job.
     return TestList
 end
 
 -- Executes a single test.
-TestManager.ExecuteSingleTest = function(Project,TestName)
+TestManager.ExecuteSingleTest = function(Project, TestName)
     -- TODO: Implement this function
-    local command="dotnet test --filter Name~"..TestName .. " --logger=\"console;verbosity=detailed\""
+    local command = "dotnet test --filter Name~" .. TestName .. ' --logger="console;verbosity=detailed"'
     -- Make the LSP to shut up
     _ = Project
     _ = command
-    print("Executing:".. command)
+    print("Executing:" .. command)
 
     local CompileOutputWindow = win.new(" Executing Test: " .. TestName .. " ")
     CompileOutputWindow.PaintWindow()
-    CompileOutputWindow.AddLine("Command: ".. command)
+    CompileOutputWindow.AddLine("Command: " .. command)
     CompileOutputWindow.AddLine("")
 
     local function on_event(_, data, event)
@@ -257,8 +256,8 @@ TestManager.ExecuteSingleTest = function(Project,TestName)
         if event == "stdout" or event == "stderr" then
             -- If we have data, then append them to the lines array
             if data then
-                for _,theLine in ipairs(data) do
-                    CompileOutputWindow.AddLine(theLine,SolutionConfig.Display.RemoveCR)
+                for _, theLine in ipairs(data) do
+                    CompileOutputWindow.AddLine(theLine, SolutionConfig.Display.RemoveCR)
                 end
             end
         end
@@ -270,7 +269,7 @@ TestManager.ExecuteSingleTest = function(Project,TestName)
     end
 
     -- https://phelipetls.github.io/posts/async-make-in-nvim-with-lua/
-    local _ = vim.fn.jobstart(command,{
+    local _ = vim.fn.jobstart(command, {
         on_stderr = on_event,
         on_stdout = on_event,
         on_exit = on_event,
@@ -280,22 +279,21 @@ TestManager.ExecuteSingleTest = function(Project,TestName)
 end
 
 TestManager.DebugTest = function(TestName)
-
     -- TODO: Implement this function
-    local command="dotnet test --filter Name~"..TestName
+    local command = "dotnet test --filter Name~" .. TestName
 
     -- https://phelipetls.github.io/posts/async-make-in-nvim-with-lua/
     --local _ = vim.fn.jobstart(command,{
-        --    on_stderr = on_event,
-        --    on_stdout = on_event,
-        --    on_exit = on_event,
-        --    --stdout_buffered = true,
-        --    --stderr_buffered = true,
-        --})
+    --    on_stderr = on_event,
+    --    on_stdout = on_event,
+    --    on_exit = on_event,
+    --    --stdout_buffered = true,
+    --    --stderr_buffered = true,
+    --})
 
-        local dap = require("dap")
-        require("dapui").open()
-        dap.continue()
-    end
+    local dap = require("dap")
+    require("dapui").open()
+    dap.continue()
+end
 
 return TestManager
