@@ -1,6 +1,6 @@
--- The goal of this module is to
--- Detect and hold all the tests of the projects
--- Execute single test for debug porposes.
+-- The goal of this module is to detect and keep track of all the tests of
+-- a dotnet project or solution. But also enable us to define a single test
+-- to use as a debug target.
 local TestManager = {}
 
 local Path = require("solution.path")
@@ -23,6 +23,7 @@ TestManager.State = {
 local win = require("solution.window")
 
 --- The exit callback that is called when the dotnet test command finishes
+--- This function resets the parser state and emits a notification.
 -- @param jobid is discarted
 -- @param data is discarted
 -- @param event should always be exit
@@ -240,7 +241,7 @@ end
 TestManager.ExecuteSingleTest = function(Project, TestName)
     -- TODO: Implement this function
     local command = "dotnet test --filter Name~" .. TestName .. ' --logger="console;verbosity=detailed"'
-    -- Make the LSP to shut up
+    -- Make the lua LSP diagnosicts about unused parameters to shut up
     _ = Project
     _ = command
     print("Executing:" .. command)
@@ -278,18 +279,18 @@ TestManager.ExecuteSingleTest = function(Project, TestName)
     })
 end
 
-TestManager.DebugTest = function(TestName)
+TestManager.DebugTest = function(FullyQualifiedTestName)
     -- TODO: Implement this function
-    local command = "dotnet test --filter Name~" .. TestName
+    local command = "dotnet test --filter Name~" .. FullyQualifiedTestName
 
     -- https://phelipetls.github.io/posts/async-make-in-nvim-with-lua/
-    --local _ = vim.fn.jobstart(command,{
-    --    on_stderr = on_event,
-    --    on_stdout = on_event,
-    --    on_exit = on_event,
-    --    --stdout_buffered = true,
-    --    --stderr_buffered = true,
-    --})
+    -- local _ = vim.fn.jobstart(command,{
+    --     on_stderr = on_event,
+    --     on_stdout = on_event,
+    --     on_exit = on_event,
+    --     --stdout_buffered = true,
+    --     --stderr_buffered = true,
+    -- })
 
     local dap = require("dap")
     require("dapui").open()
