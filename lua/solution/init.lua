@@ -26,9 +26,6 @@ local SolutionSelectionPolicies = {
 -- File filename of the solution or project that is beeing parsed.
 local filenameSLN = nil
 
--- The test name that will be executed
-local TestFunctionName = nil
-
 -- The project file that contains the test.
 local TestProject = nil
 
@@ -119,9 +116,9 @@ solution.setup = function(config)
         solution.SelectLaunchProfile,
         { desc = "Select a launch profile from launchSettings.json" }
     )
-    vim.api.nvim_create_user_command("SolSelectTest", solution.SetTest, {
-        desc = "Select a test for debug",
-    })
+    -- vim.api.nvim_create_user_command("SolSelectTest", solution.SetTest, {
+    --     desc = "Select a test for debug",
+    -- })
     vim.api.nvim_create_user_command("SolExecuteTest", solution.TestSelected, {
         desc = "Execute Test",
     })
@@ -138,8 +135,8 @@ solution.setup = function(config)
     })
     -- Execute test in debug mode
     vim.api.nvim_create_user_command("SolDebugTest", function()
-        TestManager.DebugTest(TestFunctionName)
-    end, { desc = "Select a test for debug" })
+        TestManager.DebugSelectedTest()
+    end, { desc = "Debug the selected test" })
     vim.api.nvim_create_user_command("SolDebugCSProgram", solution.GetCSProgram, {
         desc = "A Small debug test",
     })
@@ -524,69 +521,65 @@ end
 --- Execute a single test.
 solution.TestSelected = function()
     local tm = require("solution.TestManager")
-    if TestProject == nil then
-        vim.notify("Test project is nil noothing to execute", vim.log.levels.WARN, { title = "Solution.nvim" })
-        return
-    end
+    -- if TestFunctionName == nil then
+    --     vim.notify("No test function selected. Nothing to execute", vim.log.levels.WARN, { title = "Solution.nvim" })
+    -- end
 
-    if TestFunctionName == nil then
-        vim.notify("No test function selected. Nothing to execute", vim.log.levels.WARN, { title = "Solution.nvim" })
-    end
-
-    tm.ExecuteSingleTest(TestProject, TestFunctionName)
+    tm.ExecuteSingleTest(tm.State.SelectedTest)
 end
 
 solution.PickTests = function()
     local tp = require("solution.TestPicker")
     tp.Pick()
 end
---- Load all the tests that are reported by dotnet
-solution.GetTests = function()
-    local tm = require("solution.TestManager")
-    local tests = tm.GetTests(filenameSLN)
 
-    -- TODO if tests more than zero
-    local window = win.new("=== TESTS ===")
-    window.PaintWindow()
-    window.SetFiletype("lua")
-
-    local str = vim.inspect(tests)
-
-    local i = 0
-    local prev = 0
-    while true do
-        i, _ = string.find(str, "\n", i + 1)
-        if i == nil then
-            break
-        end
-        local line = string.sub(str, prev + 1, i - 1)
-        window.AddLine(line)
-        prev = i
-    end
-end
+-- --- Load all the tests that are reported by dotnet
+-- solution.GetTests = function()
+--     local tm = require("solution.TestManager")
+--     local tests = tm.GetTests(filenameSLN)
+--
+--     -- TODO if tests more than zero
+--     local window = win.new("=== TESTS ===")
+--     window.PaintWindow()
+--     window.SetFiletype("lua")
+--
+--     local str = vim.inspect(tests)
+--
+--     local i = 0
+--     local prev = 0
+--     while true do
+--         i, _ = string.find(str, "\n", i + 1)
+--         if i == nil then
+--             break
+--         end
+--         local line = string.sub(str, prev + 1, i - 1)
+--         window.AddLine(line)
+--         prev = i
+--     end
+-- end
 
 --- Sets the test that will be invoked by the TestSelected method.
-solution.SetTest = function()
-    local tm = require("solution.TestManager")
-    local s = tm.GetTestUnderCursor()
-    if s ~= nil then
-        local project = Path.FindUpstreamFilesByExtension(".csproj")
-        if project[1] == nil then
-            return
-        else
-            TestProject = project[1]
-            TestFunctionName = s
-            local msg = string.format("Selected test %s:", s)
-            vim.notify(msg, vim.log.levels.INFO, { title = "Solution.nvim" })
-        end
-    end
-end
+--solution.SetTest = function()
+--    local tm = require("solution.TestManager")
+--    local s = tm.GetTestUnderCursor()
+--    if s ~= nil then
+--        local project = Path.FindUpstreamFilesByExtension(".csproj")
+--        if project[1] == nil then
+--            return
+--        else
+--            TestProject = project[1]
+--            TestFunctionName = s
+--            local msg = string.format("Selected test %s:", s)
+--            vim.notify(msg, vim.log.levels.INFO, { title = "Solution.nvim" })
+--        end
+--    end
+--end
 
 --- Clears the test that will be invoked by the TestSelected method.
-solution.ClearTest = function()
-    TestFunctionName = nil
-    TestProject = nil
-end
+-- solution.ClearTest = function()
+--     TestFunctionName = nil
+--     TestProject = nil
+-- end
 
 --- Clears the test that will be invoked by the TestSelected method.
 solution.WriteSolution = function()

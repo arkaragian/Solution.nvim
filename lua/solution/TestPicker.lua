@@ -5,6 +5,9 @@ local pickers = require("telescope.pickers")
 -- Provides interfaces to fill the picker with items.
 local finders = require("telescope.finders")
 
+local actions = require("telescope.actions")
+local action_state = require("telescope.actions.state")
+
 --Values table which holds the user's configuration. So to
 --make it easier we access this table directly in conf.
 local conf = require("telescope.config").values
@@ -39,10 +42,10 @@ TestPicker.Pick = function(opts)
 
         -- Create the picker
         local picker = pickers.new(opts, {
-            prompt_title = "Tests",
-            finder = finders.new_table({ results = test_results }),
-            sorter = conf.generic_sorter(opts),
-        })
+                prompt_title = "Tests",
+                finder = finders.new_table({ results = test_results }),
+                sorter = conf.generic_sorter(opts),
+            })
 
         --- Adds a test to the displayed results
         local function update_picker(test)
@@ -60,10 +63,23 @@ TestPicker.Pick = function(opts)
     else
         -- Create the picker
         local picker = pickers.new(opts, {
-            prompt_title = "Tests",
-            finder = finders.new_table({ results = TestManager.State.TestList }),
-            sorter = conf.generic_sorter(opts),
-        })
+                prompt_title = "Tests",
+                finder = finders.new_table({ results = TestManager.State.TestList }),
+                sorter = conf.generic_sorter(opts),
+                -- Handle what to do when we make a chaoice
+                attach_mappings = function(prompt_bufnr, map)
+                    --When we make a selection just close the buffer and
+                    --assign the result to the 
+                    actions.select_default:replace(function()
+                        actions.close(prompt_bufnr)
+                        local selection = action_state.get_selected_entry()
+                        -- print(vim.inspect(selection))
+                        TestManager.State.SelectedTest = selection[1]
+                        --vim.api.nvim_put({ selection[1] }, "", false, true)
+                    end)
+                    return true
+                end,
+            })
 
         -- Start the picker
         picker:find()

@@ -18,6 +18,7 @@ TestManager.State = {
     -- Holds the state of the "parser" as we list the tests with "dotnet test"
     -- The states are two. None and parsing
     TestListParsingState = "none",
+    SelectedTest = nil
 }
 
 local win = require("solution.window")
@@ -28,15 +29,17 @@ local win = require("solution.window")
 -- @param data is discarted
 -- @param event should always be exit
 local function ReceiveTestListResultsExitCallback(_, _, event)
-    if event == "exit" then
-        TestManager.State.TestListParsingState = "none"
-        PreviousLine = nil
-        vim.notify(
-            "Test Detection Finished. " .. utils.Length(TestManager.State.TestList) .. " Tests found.",
-            vim.log.levels.INFO,
-            { title = "Solution.nvim" }
-        )
+    if event ~= "exit" then
+        return
     end
+
+    TestManager.State.TestListParsingState = "none"
+    PreviousLine = nil
+    vim.notify(
+        "Test Detection Finished. " .. utils.Length(TestManager.State.TestList) .. " Tests found.",
+        vim.log.levels.INFO,
+        { title = "Solution.nvim" }
+    )
 end
 
 --- Parses all the output of the "dotnet test --list-tests" command.
@@ -110,7 +113,7 @@ local function ReceiveTestListResultsCallback(_, data, _, update_picker)
                 if lfIndex == nil then
                     local s = string.sub(PreviousLine, lfPrev, string.len(PreviousLine))
                     local testName = s:gsub("^%s+", ""):gsub("%s+$", "")
-                    table.insert(TestManager.State.TestList, testName)
+                    table.insert(TestManager.State.TestList,  testName)
                     --print("Inserting Test:" .. testName)
                     if update_picker then
                         update_picker(testName)
@@ -220,6 +223,7 @@ TestManager.GetTests = function(solutionfile, update_picker)
         end,
         on_exit = ReceiveTestListResultsExitCallback,
     })
+
     if id == 0 then
         vim.notify("Invalid arguments", vim.log.levels.ERROR, { title = "Solution.nvim Test Parsing" })
     end
@@ -238,11 +242,10 @@ TestManager.GetTests = function(solutionfile, update_picker)
 end
 
 -- Executes a single test.
-TestManager.ExecuteSingleTest = function(Project, TestName)
+TestManager.ExecuteSingleTest = function(TestName)
     -- TODO: Implement this function
     local command = "dotnet test --filter Name~" .. TestName .. ' --logger="console;verbosity=detailed"'
     -- Make the lua LSP diagnosicts about unused parameters to shut up
-    _ = Project
     _ = command
     print("Executing:" .. command)
 
@@ -255,42 +258,73 @@ TestManager.ExecuteSingleTest = function(Project, TestName)
         -- While the job is running , it may write to stdout and stderr
         -- Here we handle when we write to stdout
         if event == "stdout" or event == "stderr" then
+            if data == nil then
+                return
+            end
+
             -- If we have data, then append them to the lines array
-            if data then
-                for _, theLine in ipairs(data) do
-                    CompileOutputWindow.AddLine(theLine, SolutionConfig.Display.RemoveCR)
-                end
+            for _, theLine in ipairs(data) do
+                CompileOutputWindow.AddLine(theLine, SolutionConfig.Display.RemoveCR)
             end
         end
 
         -- When the job exits, populate the quick fix list
         if event == "exit" then
+            CompileOutputWindow.AddLine("Exexcution Finished")
             CompileOutputWindow.BringToFront()
         end
     end
 
     -- https://phelipetls.github.io/posts/async-make-in-nvim-with-lua/
-    local _ = vim.fn.jobstart(command, {
+    local id = vim.fn.jobstart(command, {
         on_stderr = on_event,
         on_stdout = on_event,
         on_exit = on_event,
         --stdout_buffered = true,
         --stderr_buffered = true,
     })
+
+    if id == 0 then
+        vim.notify("Invalid arguments. Cannot execute single test!", vim.log.levels.ERROR, { title = "Solution.nvim Execute Single Test" })
+    end
+
+    if id == -1 then
+        vim.notify("Command or Shell is not Executable", vim.log.levels.ERROR, { title = "Solution.nvim Execute Single Test" })
+    end
 end
 
-TestManager.DebugTest = function(FullyQualifiedTestName)
+TestManager.DebugSelectedTest = function()
+
+    if TestManager.State.SelectedTest == nil then
+        print("No test was selected!");
+    end
+
+
     -- TODO: Implement this function
-    local command = "dotnet test --filter Name~" .. FullyQualifiedTestName
+    local command = "dotnet test --filter Name~" .. TestManager.State.SelectedTest;
+
+    local function on_event(jobid, data, event)
+        print("A test is getting debugged! With JobID: ".. jobid .. " Data: " .. data .. " Event: " .. event);
+    end
 
     -- https://phelipetls.github.io/posts/async-make-in-nvim-with-lua/
-    -- local _ = vim.fn.jobstart(command,{
-    --     on_stderr = on_event,
-    --     on_stdout = on_event,
-    --     on_exit = on_event,
-    --     --stdout_buffered = true,
-    --     --stderr_buffered = true,
-    -- })
+    local id = vim.fn.jobstart(command,{
+        env = {
+            VSTEST_RUNNER_DEBUG = 1
+        },
+        on_stderr = on_event,
+        on_stdout = on_event,
+        on_exit = on_event,
+    })
+
+    if id == 0 then
+        vim.notify("Invalid arguments. Cannot execute single test!", vim.log.levels.ERROR, { title = "Solution.nvim Execute Single Test" })
+    end
+
+    if id == -1 then
+        vim.notify("Command or Shell is not Executable", vim.log.levels.ERROR, { title = "Solution.nvim Execute Single Test" })
+    end
+
 
     local dap = require("dap")
     require("dapui").open()
