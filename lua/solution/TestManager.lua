@@ -113,7 +113,7 @@ local function ReceiveTestListResultsCallback(_, data, _, update_picker)
                 if lfIndex == nil then
                     local s = string.sub(PreviousLine, lfPrev, string.len(PreviousLine))
                     local testName = s:gsub("^%s+", ""):gsub("%s+$", "")
-                    table.insert(TestManager.State.TestList,  testName)
+                    table.insert(TestManager.State.TestList, testName)
                     --print("Inserting Test:" .. testName)
                     if update_picker then
                         update_picker(testName)
@@ -193,6 +193,7 @@ TestManager.GetTestUnderCursor = function()
     end
 end
 
+--- Retuns the detected test list
 TestManager.GetTestList = function()
     return TestManager.State.TestList
 end
@@ -285,11 +286,13 @@ TestManager.ExecuteSingleTest = function(TestName)
     })
 
     if id == 0 then
-        vim.notify("Invalid arguments. Cannot execute single test!", vim.log.levels.ERROR, { title = "Solution.nvim Execute Single Test" })
+        vim.notify("Invalid arguments. Cannot execute single test!", vim.log.levels.ERROR,
+            { title = "Solution.nvim Execute Single Test" })
     end
 
     if id == -1 then
-        vim.notify("Command or Shell is not Executable", vim.log.levels.ERROR, { title = "Solution.nvim Execute Single Test" })
+        vim.notify("Command or Shell is not Executable", vim.log.levels.ERROR,
+            { title = "Solution.nvim Execute Single Test" })
     end
 end
 
@@ -304,15 +307,16 @@ TestManager.DebugSelectedTest = function()
     local command = "dotnet test --filter Name~" .. TestManager.State.SelectedTest;
 
     local function on_event(jobid, data, event)
-        if data~=nil then
-            print("A test is getting debugged! With JobID: ".. jobid .. " Data: " .. vim.inspect(data) .. " Event: " .. event);
+        if data ~= nil then
+            print("A test is getting debugged! With JobID: " ..
+                jobid .. " Data: " .. vim.inspect(data) .. " Event: " .. event);
             return
         end
-        print("A test is getting debugged! With JobID: ".. jobid  .. " Event: " .. event);
+        print("A test is getting debugged! With JobID: " .. jobid .. " Event: " .. event);
     end
 
     -- https://phelipetls.github.io/posts/async-make-in-nvim-with-lua/
-    local id = vim.fn.jobstart(command,{
+    local id = vim.fn.jobstart(command, {
         env = {
             -- TODO: This is a different name on linux
             VSTEST_RUNNER_DEBUG = 1
@@ -323,55 +327,57 @@ TestManager.DebugSelectedTest = function()
     })
 
     if id == 0 then
-        vim.notify("Invalid arguments. Cannot execute single test!", vim.log.levels.ERROR, { title = "Solution.nvim Execute Single Test" })
+        vim.notify("Invalid arguments. Cannot execute single test!", vim.log.levels.ERROR,
+            { title = "Solution.nvim Execute Single Test" })
     end
 
     if id == -1 then
-        vim.notify("Command or Shell is not Executable", vim.log.levels.ERROR, { title = "Solution.nvim Execute Single Test" })
+        vim.notify("Command or Shell is not Executable", vim.log.levels.ERROR,
+            { title = "Solution.nvim Execute Single Test" })
     end
 
     -- We got a PID. We now need to open dap and use a configuration
     --
     -- Maybe use some code from neotest
     --   local success, job = pcall(nio.fn.jobstart, spec.command, {
-  --  cwd = spec.cwd,
-  --  env = { ["VSTEST_HOST_DEBUG"] = "1" },
-  --  pty = true,
-  --  on_stdout = function(_, data)
-  --    nio.run(function()
-  --      data_accum:push(table.concat(data, "\n"))
-  --    end)
+    --  cwd = spec.cwd,
+    --  env = { ["VSTEST_HOST_DEBUG"] = "1" },
+    --  pty = true,
+    --  on_stdout = function(_, data)
+    --    nio.run(function()
+    --      data_accum:push(table.concat(data, "\n"))
+    --    end)
 
-  --    if not debugStarted then
-  --      for _, output in ipairs(data) do
-  --        dotnet_test_pid = dotnet_test_pid or string.match(output, "Process Id%p%s(%d+)")
+    --    if not debugStarted then
+    --      for _, output in ipairs(data) do
+    --        dotnet_test_pid = dotnet_test_pid or string.match(output, "Process Id%p%s(%d+)")
 
-  --        if
-  --          string.find(output, "Waiting for debugger attach...")
-  --          or string.find(output, "Please attach debugger")
-  --          or string.find(output, "Process Id:")
-  --        then
-  --          waitingForDebugger = true
-  --        end
-  --      end
-  --      if dotnet_test_pid ~= nil and waitingForDebugger then
-  --        logger.debug("neotest-dotnet: Dotnet test process ID: " .. dotnet_test_pid)
-  --        debugStarted = true
+    --        if
+    --          string.find(output, "Waiting for debugger attach...")
+    --          or string.find(output, "Please attach debugger")
+    --          or string.find(output, "Process Id:")
+    --        then
+    --          waitingForDebugger = true
+    --        end
+    --      end
+    --      if dotnet_test_pid ~= nil and waitingForDebugger then
+    --        logger.debug("neotest-dotnet: Dotnet test process ID: " .. dotnet_test_pid)
+    --        debugStarted = true
 
-  --        dap.run(vim.tbl_extend("keep", {
-  --          type = spec.dap.adapter_name,
-  --          name = "attach - netcoredbg",
-  --          request = "attach",
-  --          processId = dotnet_test_pid,
-  --        }, spec.dap.args or {}))
-  --      end
-  --    end
-  --  end,
-  --  on_exit = function(_, code)
-  --    result_code = code
-  --    finish_future.set()
-  --  end,
-  --})
+    --        dap.run(vim.tbl_extend("keep", {
+    --          type = spec.dap.adapter_name,
+    --          name = "attach - netcoredbg",
+    --          request = "attach",
+    --          processId = dotnet_test_pid,
+    --        }, spec.dap.args or {}))
+    --      end
+    --    end
+    --  end,
+    --  on_exit = function(_, code)
+    --    result_code = code
+    --    finish_future.set()
+    --  end,
+    --})
 
     local dap = require("dap")
     require("dapui").open()
