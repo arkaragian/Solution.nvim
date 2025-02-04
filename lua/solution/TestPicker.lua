@@ -29,7 +29,7 @@ local TestManager = require("solution.TestManager")
 -- end
 --
 
--- Dynamic width calculation (like before)
+-- Dynamically calculate the widths for a two collumn picker displpay.
 local function calculate_widths()
     local total_width = vim.api.nvim_win_get_width(0) - 10
     local name_width = math.floor(total_width * 0.8)
@@ -38,61 +38,43 @@ local function calculate_widths()
 end
 
 -- Define the entry display format
-local function create_display(entry)
+local function gen_from_test_name(entry)
+
+    -- TODO: Do not recalculate for every test.
     local name_width, type_width = calculate_widths()
 
+    -- This returns a function that we will use to display our entries
     local displayer = entry_display.create({
-        separator = " | ",
+        separator = " ",
         items = {
             { width = name_width }, -- First column (name)
             { width = type_width }, -- Second column (size)
-        },
+        }
     })
 
     return displayer({
-        entry[1], -- This is the test name
+        entry, -- This is the test name
         "test",
     })
 end
 
+--- Modifies a default telescope entry to display test
 local function test_entry_maker(entry)
+    -- Assumes entries are simple strings
     return {
-        value = entry,
-        display = function(entry_for_format)
+        value =  entry,
+        display = function(_)
             -- telescope constructs an entry with value ordinal and display. We need the pure value.
-            return create_display(entry_for_format.value)
+            return gen_from_test_name(entry)
         end,
-        ordinal = entry[1],
+        ordinal = entry,
     }
 end
 
 --- Execute a telescope picker for the tests
 TestPicker.Pick = function(opts)
+    vim.notify("Starting Test Picker", vim.log.levels.INFO , { title = "Solution.nvim" })
     opts = opts or {}
-
-    -- local picker = pickers.new(opts, {
-    --     prompt_title = "Tests",
-    --     finder = finders.new_table {
-    --         results = {
-    --             { "red", "#ff0000" },
-    --             { "green", "#00ff00" },
-    --             { "blue", "#0000ff" },
-    --         },
-    --         entry_maker = function(entry)
-    --             return {
-    --                 value = entry,
-    --                 display = function(entry_for_format)
-    --                     -- telescope constructs an entry with value ordinal and display. We need the pure value.
-    --                     return create_display(entry_for_format.value)
-    --                 end,
-    --                 ordinal = entry[1],
-    --             }
-    --         end
-    --     },
-    --     sorter = conf.generic_sorter(opts),
-    -- })
-
-    -- picker:find()
 
     if TestManager.State.TestListParsingState == "parsing" then
         vim.notify("Test Parsing is not yet ready. Try again later.", vim.log.levels.WARN, { title = "Solution.nvim" })
@@ -100,6 +82,7 @@ TestPicker.Pick = function(opts)
     end
 
     if TestManager.State.TestList == nil then
+        vim.notify("Tests are nill updating", vim.log.levels.INFO , { title = "Solution.nvim" })
         --- The results that are actually displayed
         local test_results = {}
 
@@ -109,13 +92,7 @@ TestPicker.Pick = function(opts)
             finder = finders.new_table(
                 {
                     results = test_results,
-                    entry_maker = function(entry)
-                        return {
-                            value = entry[1],
-                            display = test_entry_maker,
-                            ordinal = entry[1],
-                        }
-                    end
+                    entry_maker = test_entry_maker
                 }
             ),
             sorter = conf.generic_sorter(opts),
@@ -127,13 +104,7 @@ TestPicker.Pick = function(opts)
             if picker then
                 local input = {
                     results = test_results,
-                    entry_maker = function(entry)
-                        return {
-                            value = entry[1],
-                            display = test_entry_maker,
-                            ordinal = entry[1],
-                        }
-                    end
+                    entry_maker = test_entry_maker
                 }
                 picker:refresh(finders.new_table(input), { reset_prompt = false })
             end
@@ -145,6 +116,8 @@ TestPicker.Pick = function(opts)
         -- Call GetTests with the update_picker function
         TestManager.GetTests(SolutionManager.Solution.SolutionPath, update_picker)
     else
+        vim.notify("Tests are NOT nill", vim.log.levels.INFO , { title = "Solution.nvim" })
+        -- print(vim.inspect(TestManager.State.TestList))
         -- Create the picker
         local picker = pickers.new(opts, {
             prompt_title = "Tests",
@@ -152,13 +125,7 @@ TestPicker.Pick = function(opts)
             finder = finders.new_table(
                 {
                     results = TestManager.State.TestList,
-                    entry_maker = function(entry)
-                        return {
-                            value = entry[1],
-                            display = test_entry_maker,
-                            ordinal = entry[1],
-                        }
-                    end
+                    entry_maker = test_entry_maker
                 }
             ),
             sorter = conf.generic_sorter(opts),

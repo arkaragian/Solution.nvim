@@ -46,8 +46,8 @@ end
 -- Uses the PreviousLine and TestListParsingState as a state. Discard the job id.
 -- We don't need it. This method is used as an event handler.
 -- @param id The job id. Is discarted.
--- @param data The data contained in the callback
--- @param event The event type either "stdout" "stderr" or "exit"
+-- @param data The raw data that will be processed contained in the callback
+-- @param event The event type either "stdout" "stderr" or "exit". This is discarted
 -- @param picker_update_callback A callback that updates the test results back to telescope
 -- @return a string value
 local function ReceiveTestListResultsCallback(_, data, _, update_picker)
@@ -71,11 +71,11 @@ local function ReceiveTestListResultsCallback(_, data, _, update_picker)
     -- Tha value of this is reset in each execution
     local line = ""
 
-    print('Line variable before concat "' .. line .. '"')
+    -- print('Line variable before concat "' .. line .. '"')
 
     -- Concat data to single line
     for _, lineSegment in ipairs(data) do
-        print('Adding: "' .. lineSegment .. '"')
+        -- print('Adding: "' .. lineSegment .. '"')
         line = line .. lineSegment
     end
 
