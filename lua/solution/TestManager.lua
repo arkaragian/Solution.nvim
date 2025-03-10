@@ -300,11 +300,14 @@ TestManager.DebugSelectedTest = function()
 
     if TestManager.State.SelectedTest == nil then
         print("No test was selected!");
+        return;
     end
 
 
     -- TODO: Implement this function
     local command = "dotnet test --filter Name~" .. TestManager.State.SelectedTest;
+
+    print("Executing the following command" .. command)
 
     local function on_event(jobid, data, event)
         if data ~= nil then
@@ -381,7 +384,13 @@ TestManager.DebugSelectedTest = function()
 
     local dap = require("dap")
     require("dapui").open()
-    dap.continue()
+   dap.run( {
+     type = "netcoredbg",
+     request = "attach",
+     name = "attach - netcoredbg",
+     processId = id,
+   })
+   --dap.continue()
 end
 
 return TestManager
