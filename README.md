@@ -132,3 +132,10 @@ Below are listed ideas of what the plugin could do. Not in order of priority.
 - [ ] Add support for project exclusion
 - [ ] Integration with dap modules for easier discovery of programs.
 - [ ] Add nuget package management.
+
+## Executing tests
+
+In the root of the project
+```bash
+nvim --headless -c "PlenaryBustedDirectory tests/"
+```
