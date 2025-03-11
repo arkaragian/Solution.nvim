@@ -4,7 +4,11 @@
 local TestManager = {}
 
 local Path = require("solution.path")
+local os = require("solution.osutils")
 local utils = require("solution.utils")
+local SolutionManager = require("solution.SolutionManager")
+
+local dap = require("dap")
 
 --- This is async populated
 local TestList = {}
@@ -299,45 +303,80 @@ end
 TestManager.DebugSelectedTest = function()
 
     if TestManager.State.SelectedTest == nil then
-        print("No test was selected!");
+        print("No test was selected. Nothing to to here. Returning...");
         return;
     end
 
 
-    -- TODO: Implement this function
+    -- TODO: Maybe go to cwd.
     local command = "dotnet test --filter Name~" .. TestManager.State.SelectedTest;
 
-    print("Executing the following command" .. command)
+    print("Executing the following command: " .. command .. " with CWD: " .. vim.fn.getcwd())
 
     local function on_event(jobid, data, event)
         if data ~= nil then
-            print("A test is getting debugged! With JobID: " ..
+            print("The test: " .. TestManager.State.SelectedTest .." is getting debugged! With JobID: " ..
                 jobid .. " Data: " .. vim.inspect(data) .. " Event: " .. event);
             return
         end
-        print("A test is getting debugged! With JobID: " .. jobid .. " Event: " .. event);
+        print("The test: " .. TestManager.State.SelectedTest .." is getting debugged! With JobID: " .. jobid .. " Event: " .. event);
     end
 
-    -- https://phelipetls.github.io/posts/async-make-in-nvim-with-lua/
-    local id = vim.fn.jobstart(command, {
+    print("The Solution Path is: "..SolutionManager.Solution.SolutionPath)
+    local wd = Path.GetParrentDirectory(SolutionManager.Solution.SolutionPath, os.seperator)
+    print("The working directory that will be used is: " .. wd)
+
+
+    local cb = function(error, data)
+        print(data)
+    end
+
+    local options = {
+        cwd = wd,
         env = {
             -- TODO: This is a different name on linux
             VSTEST_RUNNER_DEBUG = 1
         },
-        on_stderr = on_event,
-        on_stdout = on_event,
-        on_exit = on_event,
-    })
+        text = true,
+        stdout = cb
+    }
 
-    if id == 0 then
-        vim.notify("Invalid arguments. Cannot execute single test!", vim.log.levels.ERROR,
-            { title = "Solution.nvim Execute Single Test" })
-    end
+    local cmd_elements = {
+        "dotnet",
+        "test",
+        "--filter",
+        "Name~"..TestManager.State.SelectedTest
+    }
+    local object = vim.system(cmd_elements, options)
 
-    if id == -1 then
-        vim.notify("Command or Shell is not Executable", vim.log.levels.ERROR,
-            { title = "Solution.nvim Execute Single Test" })
-    end
+   require("dapui").open()
+   dap.run( {
+     type = "netcoredbg",
+     request = "attach",
+     name = "attach - netcoredbg",
+     processId = object.pid,
+   })
+
+    -- https://phelipetls.github.io/posts/async-make-in-nvim-with-lua/
+    -----local id = vim.fn.jobstart(command, {
+    -----    env = {
+    -----        -- TODO: This is a different name on linux
+    -----        VSTEST_RUNNER_DEBUG = 1
+    -----    },
+    -----    on_stderr = on_event,
+    -----    on_stdout = on_event,
+    -----    on_exit = on_event,
+    -----})
+
+    -----if id == 0 then
+    -----    vim.notify("Invalid arguments. Cannot execute single test!", vim.log.levels.ERROR,
+    -----        { title = "Solution.nvim Execute Single Test" })
+    -----end
+
+    -----if id == -1 then
+    -----    vim.notify("Command or Shell is not Executable", vim.log.levels.ERROR,
+    -----        { title = "Solution.nvim Execute Single Test" })
+    -----end
 
     -- We got a PID. We now need to open dap and use a configuration
     --
@@ -382,14 +421,14 @@ TestManager.DebugSelectedTest = function()
     --  end,
     --})
 
-    local dap = require("dap")
-    require("dapui").open()
-   dap.run( {
-     type = "netcoredbg",
-     request = "attach",
-     name = "attach - netcoredbg",
-     processId = id,
-   })
+   ----local dap = require("dap")
+   ----require("dapui").open()
+   ----dap.run( {
+   ----  type = "netcoredbg",
+   ----  request = "attach",
+   ----  name = "attach - netcoredbg",
+   ----  processId = id,
+   ----})
    --dap.continue()
 end
 
