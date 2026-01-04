@@ -153,8 +153,9 @@ solution.setup = function(config)
     local SolutionNvimSolutionAutoLoader =
         vim.api.nvim_create_augroup("SolutionNvimSolutionAutoLoader", { clear = true })
 
-    vim.api.nvim_create_autocmd("BufEnter", {
-        pattern = { "*.cs,*.csproj,*.sln" },
+    --vim.api.nvim_create_autocmd("BufEnter", {
+    vim.api.nvim_create_autocmd({ "BufReadPost", "BufNewFile" }, {
+        pattern = { "*.cs","*.csproj","*.sln" },
         --command = solution.LoadSolution,
         callback = solution.LoadSolution,
         group = SolutionNvimSolutionAutoLoader,
@@ -162,6 +163,8 @@ solution.setup = function(config)
 
     -- Let everyone else know that we have loaded
     vim.g.SolutionPluginLoaded = true
+
+    log.information("Solution.nvim Plugin Loaded")
 end
 
 -----------------------------------------------------------------------------
@@ -170,7 +173,7 @@ end
 
 --- A Function that finds and loads a solution.
 --This is directly bindable to command
-solution.LoadSolution = function()
+solution.LoadSolution = function(args)
     solution.FindAndLoadSolution(SolutionConfig)
 end
 
