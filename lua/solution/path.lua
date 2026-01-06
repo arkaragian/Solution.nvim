@@ -7,6 +7,7 @@
 local Path = {}
 
 local os = require("solution.osutils")
+local log = require("solution.log")
 
 Path.GetFilenameFromPath = function(filepath,withExtension)
     -- The filename is between the os seperator and the dot in the file if it
@@ -236,14 +237,18 @@ end
 Path.FindUpstreamFilesByExtension = function(extension)
     if( extension == nil ) then
         print("Extension is nil. Returning empty table")
+        log.error("Extension is nil. Returning empty table")
         return {}
     end
     local cur_dir = vim.fn.getcwd()
     local dir_sep = os.seperator
 
     if(cur_dir == nil) then
+        log.error("No current directory returning nill")
         return {}
     end
+
+    log.information("Trying ".. cur_dir)
 
     local prev_dir = "nothing"
     while (prev_dir ~= cur_dir) do

@@ -426,6 +426,8 @@ end
 -- This is private member and we reserve the right to change it any time.
 -- @param options The plugin configuration options
 solution.FindAndLoadSolution = function(options)
+
+    log.information("Finding and loading solution")
     local filename = nil
     -- If no options are provided use the default options.
     if not options then
@@ -436,6 +438,7 @@ solution.FindAndLoadSolution = function(options)
         -- Do not select file. Find the first applicable file.
         local slnFile = Path.FindUpstreamFilesByExtension(".sln")
         if slnFile == nil then
+            log.error("no .sln file found trying .csproj")
             -- No solution file found. Try to fall back to a csproj
             vim.notify(
                 "No sln file located. Trying to locate csproj file.",
@@ -453,6 +456,7 @@ solution.FindAndLoadSolution = function(options)
         else
             filename = slnFile[1]
             filenameSLN = slnFile[1]
+            log.error("Found .sln file ".. filename)
         end
     elseif options.SolutionSelectionPolicy == SolutionSelectionPolicies.Selection then
         -- Select file
@@ -463,6 +467,7 @@ solution.FindAndLoadSolution = function(options)
     end
 
     if not filename then
+        log.error("No Filename Found")
         return 2
     end
 
