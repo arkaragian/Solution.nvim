@@ -156,6 +156,7 @@ local function ParseProject(fileHandle,startPosition,lineCounter)
     --
     -- Rewind the open file to the start position
     --
+    log.information("Parse Project Called")
 
     fileHandle:seek("set",startPosition)
     local result = {
@@ -163,7 +164,8 @@ local function ParseProject(fileHandle,startPosition,lineCounter)
         position = startPosition,
         line = lineCounter - 1 -- We have rewinded thus we just remove a line this will be overwritten down the line
     }
-    local line = fileHandle:read()
+    local line = fileHandle:read("*l")
+    line = line:gsub("\r$", "")
     -- No need to add to the line counter since we are re-reading the line that
     -- we have already encountered
     if(line == nil) then
@@ -185,7 +187,7 @@ local function ParseProject(fileHandle,startPosition,lineCounter)
     local textIndex = 1
     -- Start reading lines
     while(true) do
-        line = fileHandle:read()
+        line = fileHandle:read("*l")
         -- We have reached the end of the file. But not the normal ending of
         -- the project.
         if(line == nil) then
@@ -306,7 +308,7 @@ local function ParseNestedProjects(fileHandle,startPosition)
 
     local result = {}
     repeat
-        local line = fileHandle:read()
+        local line = fileHandle:read("*l")
         if(line == nil) then
             break
         end
@@ -347,7 +349,7 @@ local function ParseSolutionConfigurations(fileHandle,startPosition, lineCounter
 
     local configurationIndex = 1
     repeat
-        local line = fileHandle:read()
+        local line = fileHandle:read("*l")
 
         if(line == nil) then
             break
@@ -435,7 +437,7 @@ local function ParseProjectConfigurations(fileHandle,startPosition,lineCounter)
 
     lineCounter = lineCounter -1
     repeat
-        local line = fileHandle:read()
+        local line = fileHandle:read("*l")
         --if(line ~= nil) then
         --    print("Line parsed:"..line)
         --end
@@ -497,6 +499,8 @@ local function ParseVisualStudioVersion(line)
     return require("solution.utils").StringTrimWhiteSpace(value)
 end
 
+
+
 --- Parses a .sln file into a lua structure
 -- @param filename The path to the file
 SolutionParser.ParseSolution = function(filename)
@@ -515,13 +519,14 @@ SolutionParser.ParseSolution = function(filename)
         Projects = {},
         SolutionConfigurations = {},
         ProjectConfigurations = {},
+        --- A table with the line number and the line text
         _text = {}
     }
 
 
     local utils = require("solution.utils")
     -- Use read mode for the file.
-    local file = io.open(filename,"r")
+    local file = io.open(filename,"rb")
     if(file == nil) then
         print("Could not open file")
         vim.notify("Could not open file: ".. filename,vim.log.levels.ERROR,{title = "Solution.nvim"})
@@ -532,11 +537,17 @@ SolutionParser.ParseSolution = function(filename)
     local lineCounter = 0
     local textIndex = 1
     while(true) do
-        local line = file:read()
+        local line = file:read("*l") -- Read 
         if(line == nil) then
             break
         end
+
+        -- if(lineCounter > 2000)  then
+        --     log.error("Breaking due to many items!")
+        --     break
+        -- end
         lineCounter = lineCounter + 1
+        log.information("Line Counter: ".. lineCounter .. " Previous Position: " .. previousPosition)
 
         if(utils.StringStartsWith(line,"Project(")) then
             -- We have now read a line that denotes the start of a project.
@@ -551,9 +562,11 @@ SolutionParser.ParseSolution = function(filename)
             lineCounter = result.line
         elseif (utils.StringStartsWith(line,"GlobalSection(NestedProjects)")) then
             -- TODO: Parse nested projects
+            log.information("TODO: Parse Nested Projects : " .. line)
             solution._text[textIndex] = {lineCounter, line}
             textIndex = textIndex + 1;
         elseif (utils.StringStartsWith(utils.StringTrimWhiteSpace(line),"GlobalSection(SolutionConfigurationPlatforms)")) then
+            log.information("Parse Solution Configuration Platforms")
             local result = ParseSolutionConfigurations(file,previousPosition,lineCounter)
             if result.configurations ~= nil then
                 solution.SolutionConfigurations = result.configurations
@@ -561,6 +574,7 @@ SolutionParser.ParseSolution = function(filename)
             file:seek("set",result.position)
             lineCounter = result.line
         elseif (utils.StringStartsWith(utils.StringTrimWhiteSpace(line),"GlobalSection(ProjectConfigurationPlatforms)")) then
+            log.information("Parse Project Configuration Platforms")
             local result = ParseProjectConfigurations(file,previousPosition, lineCounter)
             if result.projectConfigurations ~= nil then
                 --print(vim.inspect(a))
@@ -573,17 +587,20 @@ SolutionParser.ParseSolution = function(filename)
             lineCounter = result.line
             --return solution
         elseif (utils.StringStartsWith(line,"VisualStudioVersion")) then
+            log.information("Parsing Visual Studio Version")
             solution.VisualStudioVersion = ParseVisualStudioVersion(line)
         elseif (utils.StringStartsWith(line,"MinimumVisualStudioVersion")) then
+            log.information("Parsing Minimal Visual Studio Version")
             solution.MinimumVisualStudioVersion= ParseVisualStudioVersion(line)
         else
+            log.information("Storing Insignificant text: \"" .. line ..'"')
             -- This is text that we store but does not offer any significant value
             -- and is just output to the solution writer at the appropriate positions.
             -- So in order to be good we need to filter
             solution._text[textIndex] = {lineCounter, line}
             textIndex = textIndex + 1;
         end
-        previousPosition = file:seek()
+        previousPosition = file:seek() -- Get current position
     end
 
     --print(vim.inspect(solution))

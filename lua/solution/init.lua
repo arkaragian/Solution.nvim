@@ -463,6 +463,7 @@ solution.FindAndLoadSolution = function(options)
         solution.AskForSelection(options)
     else
         print("Invalid selection policy")
+        log.error("Invalid Selection Policy")
         return
     end
 
@@ -472,14 +473,22 @@ solution.FindAndLoadSolution = function(options)
     end
 
     if SolutionManager.Solution == nil or SolutionManager.Solution.SolutionPath ~= filename then
+        if SolutionManager.Solution == nil then
+            log.information("Solution Detected at " .. filename)
+        else
+            log.information("Solution Changed with new solution at " .. SolutionManager.Solution.SolutionPath)
+        end
         -- Parse Solution
+        log.information("Parsing Solution")
         SolutionManager.Solution = SolutionParser.ParseSolution(filename)
+        log.information("Solution Parsed")
         CacheManager.SetupCache(SolutionManager.Solution.SolutionPath)
+        log.information("Cache was created for " .. SolutionManager.Solution.SolutionPath)
         vim.notify("Loaded " .. filename, vim.log.levels.INFO, { title = "Solution.nvim" })
 
         -- TODO: Check the projects if there are test projects then parse the
         -- the tests.
-        require("solution.TestManager").GetTests(filename)
+        -- require("solution.TestManager").GetTests(filename)
 
         local CacheData = CacheManager.ReadCacheData(SolutionManager.Solution.SolutionPath)
         if CacheData ~= nil then
