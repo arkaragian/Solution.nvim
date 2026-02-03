@@ -33,6 +33,9 @@ local State = {
 CacheManager.CacheRootLocation = vim.fn.stdpath("cache") .. OSUtils.seperator .. "solution.nvim"
 
 --- Provides a path inside the cache directory of the given solution path.
+---@param SolutionPath string 
+---@param file string
+---@return string
 CacheManager.ProvideCachePath = function(SolutionPath, file)
     return CacheManager.CacheRootLocation
         .. OSUtils.seperator
@@ -57,6 +60,8 @@ CacheManager.CreateCacheRoot = function()
     State.CacheRootInitialized = true
 end
 
+
+--- Creates the solutio.log file it does not exists in the CacheRootLocation
 CacheManager.LogInit = function()
     local filename = CacheManager.CacheRootLocation .. OSUtils.seperator .. "solution.log"
     local f = io.open(filename, "r")
@@ -78,7 +83,7 @@ CacheManager.LogInit = function()
 end
 
 --- Sets up the cache for the the given solution path
--- @param SolutionPath The path of the solution
+-- @param SolutionPath string The path of the solution
 CacheManager.SetupCache = function(SolutionPath)
     if State.CacheRootInitialized == false then
         print("Cache Root is not initalized doing nothing")
@@ -213,7 +218,7 @@ CacheManager.ReadCacheData = function(SolutionPath)
 end
 
 --- Calculates a hash code for a given string
---@param str The string for which we write a hash code
+--@param str string The string for which we write a hash code
 CacheManager.HashString = function(str)
     local hash = 0
     --local bit32 = require("bit32")

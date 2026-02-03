@@ -16,12 +16,24 @@ local CacheManager = require("solution.CacheManager")
 --                    P R I V A T E  M E M B E R S                          --
 ------------------------------------------------------------------------------
 
---- Defines the policy that will be followed when multiple solutions are encountered
--- in an upstream directory
-local SolutionSelectionPolicies = {
-    First = "first",
-    Selection = "selection",
-}
+-- The following are lsp definitions used in the project
+
+---@alias SolutionSelectionPolicy
+---| '"first"' # Use the first encountered file
+---| '"selection"' # Ask for user selection
+
+---@alias BuildConfiguration 
+---| '"Debug"'
+---| '"Release"'
+
+---@alias BuildPlatform
+---| '"Any CPU"'
+---| '"x86"'
+---| '"x64"'
+
+---@class PopupDisplayConfiguration
+---@field RemoveCR boolean #Removes CR characters from display
+---@field HideCompilationWarnings boolean #Hides compilation warnings from Quickfix
 
 -- File filename of the solution or project that is beeing parsed.
 local filenameSLN = nil
@@ -32,9 +44,11 @@ local TestProject = nil
 --Could be used to configure the parser.
 --local CompilerVersion = nil
 
--- This table stores the plugin configuration
--- The Keys that we need:
--- selection = first|selection
+---@class SolutionConfiguration
+---@field SolutionSelectionPolicy SolutionSelectionPolicy The policy to be followed
+---@field DefaultBuildConfiguration BuildConfiguration The default build to use
+---@field DefaultBuildPlatform BuildPlatform The platform to target
+---@field Display PopupDisplayConfiguration A table that controls how the outout is displayed
 local SolutionConfig = {
     -- Indicates the selection policy. Currently there are two policies.
     -- 1) first
@@ -51,7 +65,7 @@ local SolutionConfig = {
 }
 
 --- Define user options for the plugin configuration
--- @param config The user options configuraton object
+--- @param config SolutionConfiguration The user options configuraton object
 solution.setup = function(config)
     if config == nil or config == {} then
         -- No configuration use default options that have already been predefined.
@@ -424,7 +438,7 @@ end
 --- Locates the .sln starting from the location of the file that is currently being
 -- edited and move upstream. Then the .sln file is located it is then loaded into memory
 -- This is private member and we reserve the right to change it any time.
--- @param options The plugin configuration options
+--- @param options SolutionConfiguration The plugin configuration options
 solution.FindAndLoadSolution = function(options)
 
     log.information("Finding and loading solution")
@@ -434,7 +448,7 @@ solution.FindAndLoadSolution = function(options)
         options = SolutionConfig
     end
 
-    if options.SolutionSelectionPolicy == SolutionSelectionPolicies.First then
+    if options.SolutionSelectionPolicy == "first" then
         -- Do not select file. Find the first applicable file.
         local slnFile = Path.FindUpstreamFilesByExtension(".sln")
         if slnFile == nil then
@@ -458,7 +472,7 @@ solution.FindAndLoadSolution = function(options)
             filenameSLN = slnFile[1]
             log.error("Found .sln file ".. filename)
         end
-    elseif options.SolutionSelectionPolicy == SolutionSelectionPolicies.Selection then
+    elseif options.SolutionSelectionPolicy == "selection" then
         -- Select file
         solution.AskForSelection(options)
     else
@@ -497,6 +511,14 @@ solution.FindAndLoadSolution = function(options)
     end
 end
 
+---@alias TestCommand
+---| '"clean"'
+---| '"test"'
+---| '"ListTest"'
+
+---Do something
+---@param command any
+---@param options SolutionConfiguration
 solution.PerformCommand = function(command, options)
     -- This wil popoulate the filenameSLN value
     solution.FindAndLoadSolution(options)
@@ -522,6 +544,8 @@ solution.PerformCommand = function(command, options)
     end
 end
 
+---Clean Solution
+---@param options SolutionConfiguration
 solution.Clean = function(options)
     solution.PerformCommand("clean", options)
 end
@@ -531,8 +555,9 @@ solution.LaunchProject = function()
     -- Get active profile if a Properties directory exist
 end
 
+
 solution.Test = function()
-    solution.PerformCommand("test", options)
+    -- solution.PerformCommand("test", options)
 end
 
 --- Execute a single test.
