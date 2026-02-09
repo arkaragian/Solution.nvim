@@ -22,6 +22,11 @@ local CacheManager = require("solution.CacheManager")
 ---| '"first"' # Use the first encountered file
 ---| '"selection"' # Ask for user selection
 
+local SolutionSelectionPolicyValues = {
+    first = "first",
+    selection = "selection"
+}
+
 ---@alias BuildConfiguration 
 ---| '"Debug"'
 ---| '"Release"'
@@ -255,7 +260,7 @@ solution.ValidateConfiguration = function(config)
     end
 
     local checkOk = false
-    for _, v in pairs(SolutionSelectionPolicies) do
+    for _, v in pairs(SolutionSelectionPolicyValues) do
         if config.SolutionSelectionPolicy == v then
             checkOk = true
         end
