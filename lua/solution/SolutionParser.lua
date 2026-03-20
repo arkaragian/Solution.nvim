@@ -500,15 +500,90 @@ local function ParseVisualStudioVersion(line)
 end
 
 
+---Parses an xml solution file ".slnx" and returns the solution object
+---@param filename string The xml file that will be parsed. 
+SolutionParser.ParseSolutionXML = function(filename)
+
+    local xml2lua = require("xml2lua")
+    local handler = require("xml2lua.xmlhandler.tree")
+
+    --Uses a handler that converts the XML to a Lua table
+    local xml = xml2lua.loadFile(filename)
+
+    --Instantiates the XML parser
+    local parser = xml2lua.parser(handler)
+    parser:parse(xml)
+
+    -- return handler.root
+
+    local solution = {
+        --- The absolute path to the solution file
+        SolutionPath = filename,
+        --- The minimal visual studio version for this solution
+        VisualStudioVersion = nil,
+        MinimumVisualStudioVersion = nil,
+        Projects = {},
+        SolutionConfigurations = {},
+        ProjectConfigurations = {},
+        --- A table with the line number and the line text
+        _text = {}
+    }
+
+
+    local sol = handler.root.Solution
+    if not sol then
+        return solution
+    end
+
+    -- Attributes
+    if sol._attr then
+        solution.VisualStudioVersion = sol._attr.VisualStudioVersion
+        solution.MinimumVisualStudioVersion = sol._attr.MinimumVisualStudioVersion
+    end
+
+    -- Projects (handle single vs multiple)
+    if sol.Project then
+        local projects = sol.Project
+
+        -- Normalize to array
+        if projects._attr then
+            projects = { projects }
+        end
+
+        for i = 1, #projects do
+            local p = projects[i]
+
+            local the_project = {
+                Name = p._attr.Name or path.GetFilenameFromPath(filename, false),
+                Path = p._attr.Path
+            }
+
+            table.insert(solution.Projects, the_project);
+
+            -- table.insert(solution.Projects, {
+            --     Name = p._attr and p._attr.Name or nil,
+            --     Path = p._attr and p._attr.Path or nil
+            -- })
+        end
+    end
+
+    return solution
+end
 
 --- Parses a .sln file into a lua structure
 -- @param filename The path to the file
 SolutionParser.ParseSolution = function(filename)
     local ext = path.GetFileExtension(filename)
-    if (ext ~= ".sln") then
+    if (ext ~= ".sln" and ext ~= ".slnx") then
         log.information("The extension is not .sln refusing to parse")
         return
     end
+
+    if(ext == ".slnx") then
+        return SolutionParser.ParseSolutionXML(filename)
+    end
+
+
 
     local solution = {
         --- The absolute path to the solution file
@@ -607,6 +682,7 @@ SolutionParser.ParseSolution = function(filename)
 
     return solution
 end
+
 
 
 --- Displays a solution structure to a popup window

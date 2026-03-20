@@ -69,11 +69,12 @@ local SolutionConfig = {
     },
 }
 
---- Define user options for the plugin configuration
+--- Define user options for the plugin configuration. This function is what
+--- users of this plugin must call to configure the plugin.
 --- @param config SolutionConfiguration The user options configuraton object
 solution.setup = function(config)
     if config == nil or config == {} then
-        -- No configuration use default options that have already been predefined.
+        -- No configuration. Use default options that have already been predefined.
         return
     else
         SolutionConfig = config
@@ -455,6 +456,14 @@ solution.FindAndLoadSolution = function(options)
 
     if options.SolutionSelectionPolicy == "first" then
         -- Do not select file. Find the first applicable file.
+        local slnxFile = Path.FindUpstreamFilesByExtension(".slnx")
+        if(slnxFile ~= nil) then
+            filename = slnxFile[1]
+            filenameSLN = slnxFile[1]
+            log.error("Found .slnx file ".. filename)
+            goto solution_found
+        end
+
         local slnFile = Path.FindUpstreamFilesByExtension(".sln")
         if slnFile == nil then
             log.error("no .sln file found trying .csproj")
@@ -491,6 +500,8 @@ solution.FindAndLoadSolution = function(options)
         return 2
     end
 
+
+    ::solution_found::
     if SolutionManager.Solution == nil or SolutionManager.Solution.SolutionPath ~= filename then
         if SolutionManager.Solution == nil then
             log.information("Solution Detected at " .. filename)
